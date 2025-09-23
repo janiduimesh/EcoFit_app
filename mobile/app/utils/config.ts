@@ -1,0 +1,72 @@
+import Constants from 'expo-constants';
+
+// Get API URL from environment variables or use default
+export const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:3000/api';
+
+// App configuration
+export const APP_CONFIG = {
+  name: 'EcoFit',
+  version: '1.0.0',
+  apiUrl: API_URL,
+  timeout: 10000, // 10 seconds
+  retryAttempts: 3,
+};
+
+// API endpoints
+export const API_ENDPOINTS = {
+  dispose: '/dispose',
+  health: '/health',
+  user: '/user',
+  fitness: '/fitness',
+  eco: '/eco',
+};
+
+// Environment configuration
+export const ENV = {
+  isDevelopment: __DEV__,
+  isProduction: !__DEV__,
+  nodeEnv: process.env.NODE_ENV || 'development',
+};
+
+// App colors
+export const COLORS = {
+  primary: '#4CAF50',
+  secondary: '#2E7D32',
+  accent: '#8BC34A',
+  background: '#F5F5F5',
+  surface: '#FFFFFF',
+  text: '#333333',
+  textSecondary: '#666666',
+  error: '#F44336',
+  warning: '#FF9800',
+  success: '#4CAF50',
+  info: '#2196F3',
+};
+
+// App dimensions
+export const DIMENSIONS = {
+  padding: 20,
+  margin: 15,
+  borderRadius: 8,
+  buttonHeight: 50,
+  inputHeight: 45,
+};
+
+// Font sizes
+export const FONT_SIZES = {
+  small: 12,
+  medium: 16,
+  large: 20,
+  xlarge: 24,
+  xxlarge: 28,
+};
+
+// API configuration
+export const API_CONFIG = {
+  baseURL: API_URL,
+  timeout: APP_CONFIG.timeout,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+};
