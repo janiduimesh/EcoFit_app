@@ -1,4 +1,4 @@
-import { API_URL } from '../utils/config';
+import { getApiUrl } from '../utils/config';
 
 export interface DisposeResponse {
   success: boolean;
@@ -14,7 +14,7 @@ export interface DisposeResponse {
  */
 export const dispose = async (data: string): Promise<DisposeResponse> => {
   try {
-    const response = await fetch(`${API_URL}/dispose`, {
+    const response = await fetch(`${getApiUrl()}/dispose`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -51,7 +51,7 @@ export const disposeWithType = async (
   type: string
 ): Promise<DisposeResponse> => {
   try {
-    const response = await fetch(`${API_URL}/dispose/${type}`, {
+    const response = await fetch(`${getApiUrl()}/dispose/${type}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

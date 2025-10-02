@@ -1,13 +1,19 @@
-import Constants from 'expo-constants';
-
 // Get API URL from environment variables or use default
-export const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:3000/api';
+// Completely avoid expo-constants during initial load to prevent TurboModuleRegistry errors
+export const API_URL = process.env.API_URL || 'http://localhost:3000/api';
+
+// Function to get the API URL from expo config when available
+export const getApiUrl = () => {
+  // For now, just return the default API URL to avoid expo-constants issues
+  // This can be enhanced later when the app is stable
+  return API_URL;
+};
 
 // App configuration
 export const APP_CONFIG = {
   name: 'EcoFit',
   version: '1.0.0',
-  apiUrl: API_URL,
+  apiUrl: getApiUrl(),
   timeout: 10000, // 10 seconds
   retryAttempts: 3,
 };
@@ -63,7 +69,7 @@ export const FONT_SIZES = {
 
 // API configuration
 export const API_CONFIG = {
-  baseURL: API_URL,
+  baseURL: getApiUrl(),
   timeout: APP_CONFIG.timeout,
   headers: {
     'Content-Type': 'application/json',

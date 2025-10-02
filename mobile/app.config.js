@@ -4,27 +4,24 @@ export default {
     slug: "ecofit-mobile",
     version: "1.0.0",
     orientation: "portrait",
-    icon: "./assets/icon.png",
+    platforms: ["ios", "android"],
     userInterfaceStyle: "light",
     splash: {
-      image: "./assets/splash.png",
       resizeMode: "contain",
-      backgroundColor: "#ffffff"
+      backgroundColor: "#4CAF50"
     },
     assetBundlePatterns: [
       "**/*"
     ],
     ios: {
-      supportsTablet: true
+      supportsTablet: true,
+      bundleIdentifier: "com.ecofit.mobile"
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: "./assets/adaptive-icon.png",
-        backgroundColor: "#FFFFFF"
-      }
-    },
-    web: {
-      favicon: "./assets/favicon.png"
+        backgroundColor: "#4CAF50"
+      },
+      package: "com.ecofit.mobile"
     },
     extra: {
       apiUrl: process.env.API_URL || "http://localhost:3000/api"

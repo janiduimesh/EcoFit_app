@@ -17,10 +17,10 @@ type RootStackParamList = {
 type ResultScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Result'>;
 type ResultScreenRouteProp = RouteProp<RootStackParamList, 'Result'>;
 
-interface Props {
+type Props = {
   navigation: ResultScreenNavigationProp;
   route: ResultScreenRouteProp;
-}
+};
 
 export default function Result({ navigation, route }: Props) {
   const { data } = route.params;

@@ -3,17 +3,28 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import Home from './screens/Home';
-import Result from './screens/Result';
+import Logo from './app/screens/Logo';
+import Main from './app/screens/Main';
+import Home from './app/screens/Home';
+import WasteCheck from './app/screens/WasteCheck';
+import Result from './app/screens/Result';
 
-const Stack = createStackNavigator();
+type RootStackParamList = {
+  Logo: undefined;
+  Main: undefined;
+  Home: undefined;
+  WasteCheck: undefined;
+  Result: { data: any };
+};
+
+const Stack = createStackNavigator<RootStackParamList>();
 
 export default function App() {
   return (
     <NavigationContainer>
       <StatusBar style="auto" />
       <Stack.Navigator
-        initialRouteName="Home"
+        initialRouteName="Logo"
         screenOptions={{
           headerStyle: {
             backgroundColor: '#4CAF50',
@@ -25,9 +36,24 @@ export default function App() {
         }}
       >
         <Stack.Screen 
+          name="Logo" 
+          component={Logo} 
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="Main" 
+          component={Main} 
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
           name="Home" 
           component={Home} 
-          options={{ title: 'EcoFit' }}
+          options={{ title: 'Check Waste Type' }}
+        />
+        <Stack.Screen 
+          name="WasteCheck" 
+          component={WasteCheck} 
+          options={{ title: 'Check Waste Type' }}
         />
         <Stack.Screen 
           name="Result" 
