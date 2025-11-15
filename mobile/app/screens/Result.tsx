@@ -39,10 +39,43 @@ export default function Result({ navigation, route }: Props) {
         <Text style={styles.title}>Results</Text>
         
         <View style={styles.resultContainer}>
-          <Text style={styles.resultLabel}>Processed Data:</Text>
-          <Text style={styles.resultText}>
-            {typeof data === 'string' ? data : JSON.stringify(data, null, 2)}
-          </Text>
+          <Text style={styles.resultLabel}>Classification Results:</Text>
+          
+          <View style={styles.resultItem}>
+            <Text style={styles.resultItemLabel}>Waste Type:</Text>
+            <Text style={styles.resultItemValue}>{data.waste_type || 'Unknown'}</Text>
+          </View>
+          
+          <View style={styles.resultItem}>
+            <Text style={styles.resultItemLabel}>Bin Type:</Text>
+            <Text style={styles.resultItemValue}>{data.bin_type || 'Unknown'}</Text>
+          </View>
+          
+          <View style={styles.resultItem}>
+            <Text style={styles.resultItemLabel}>Fit Status:</Text>
+            <Text style={[styles.resultItemValue, 
+              data.fit_status === 'fits' ? styles.fitsText : 
+              data.fit_status === 'does_not_fit' ? styles.noFitText : 
+              styles.partialFitText]}>
+              {data.fit_status || 'Unknown'}
+            </Text>
+          </View>
+          
+          <View style={styles.resultItem}>
+            <Text style={styles.resultItemLabel}>Confidence:</Text>
+            <Text style={styles.resultItemValue}>
+              {data.confidence ? `${Math.round(data.confidence * 100)}%` : 'Unknown'}
+            </Text>
+          </View>
+          
+          {data.tips && data.tips.length > 0 && (
+            <View style={styles.tipsContainer}>
+              <Text style={styles.tipsLabel}>Disposal Tips:</Text>
+              {data.tips.map((tip: string, index: number) => (
+                <Text key={index} style={styles.tipText}>• {tip}</Text>
+              ))}
+            </View>
+          )}
         </View>
 
         <View style={styles.buttonContainer}>
@@ -98,6 +131,53 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     lineHeight: 20,
+  },
+  resultItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  resultItemLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    flex: 1,
+  },
+  resultItemValue: {
+    fontSize: 16,
+    color: '#2E7D32',
+    fontWeight: '500',
+    textTransform: 'capitalize',
+  },
+  fitsText: {
+    color: '#4CAF50',
+  },
+  noFitText: {
+    color: '#F44336',
+  },
+  partialFitText: {
+    color: '#FF9800',
+  },
+  tipsContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  tipsLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  tipText: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+    marginBottom: 4,
   },
   buttonContainer: {
     flexDirection: 'row',

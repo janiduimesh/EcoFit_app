@@ -1,6 +1,6 @@
 // Get API URL from environment variables or use default
-// Completely avoid expo-constants during initial load to prevent TurboModuleRegistry errors
-export const API_URL = process.env.API_URL || 'http://localhost:3000/api';
+// Point to your FastAPI backend server
+export const API_URL = process.env.API_URL || 'http://192.168.43.164:8000/api/v1';
 
 // Function to get the API URL from expo config when available
 export const getApiUrl = () => {

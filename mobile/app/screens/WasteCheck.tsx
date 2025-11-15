@@ -12,6 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import * as ImagePicker from 'expo-image-picker';
 
 type RootStackParamList = {
   Logo: undefined;
@@ -36,11 +37,89 @@ export default function WasteCheck({ navigation }: Props) {
   const [inputMethod, setInputMethod] = useState<'image' | 'description'>('image');
 
   const handleImageSelect = () => {
-    // TODO: Implement image picker
-    Alert.alert('Image Selection', 'Image picker will be implemented here');
+    Alert.alert(
+      'Select Image',
+      'Choose how you want to select an image',
+      [
+        {
+          text: 'Camera',
+          onPress: () => pickImageFromCamera(),
+        },
+        {
+          text: 'Gallery',
+          onPress: () => pickImageFromGallery(),
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
   };
 
-  const handleSubmit = () => {
+  const pickImageFromCamera = async () => {
+    try {
+      // Request camera permissions
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Camera permission is required to take photos. Please enable it in your device settings.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        aspect: [4, 3],
+        quality: 0.8,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setSelectedImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Failed to take photo. Please try again.');
+    }
+  };
+
+  const pickImageFromGallery = async () => {
+    try {
+      // Request media library permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Photo library permission is required to select images. Please enable it in your device settings.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setSelectedImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error selecting image:', error);
+      Alert.alert('Error', 'Failed to select image. Please try again.');
+    }
+  };
+
+  const handleSubmit = async () => {
     if (inputMethod === 'image' && !selectedImage) {
       Alert.alert('Error', 'Please select an image first');
       return;
@@ -54,16 +133,30 @@ export default function WasteCheck({ navigation }: Props) {
       return;
     }
 
-    // TODO: Send data to FastAPI backend
-    const wasteData = {
-      image: selectedImage,
-      description: description,
-      volume: parseInt(volume),
-      inputMethod: inputMethod,
-    };
-    
-    console.log('Waste data:', wasteData);
-    Alert.alert('Success', 'Data will be sent to backend for classification');
+    try {
+      // Import the dispose function
+      const { dispose } = await import('../api/dispose');
+      
+      const wasteData = {
+        image_data: selectedImage || undefined,
+        description: description || undefined,
+        volume: parseInt(volume),
+        input_method: inputMethod,
+      };
+      
+      console.log('Sending waste data:', wasteData);
+      
+      const result = await dispose(wasteData);
+      
+      console.log('Classification result:', result);
+      
+      // Navigate to results screen with the classification result
+      navigation.navigate('Result', { data: result });
+      
+    } catch (error) {
+      console.error('Error classifying waste:', error);
+      Alert.alert('Error', 'Failed to classify waste. Please try again.');
+    }
   };
 
   return (

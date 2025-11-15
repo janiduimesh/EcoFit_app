@@ -1,25 +1,34 @@
 import { getApiUrl } from '../utils/config';
 
 export interface DisposeResponse {
-  success: boolean;
-  data?: any;
+  waste_type: string;
+  bin_type: string;
+  fit_status: string;
+  confidence: number;
+  tips: string[];
   message?: string;
-  error?: string;
+}
+
+export interface DisposeRequest {
+  image_data?: string;
+  description?: string;
+  volume: number;
+  input_method: 'image' | 'description';
 }
 
 /**
- * Dispose function to handle data processing
- * @param data - The data to be processed
+ * Dispose function to handle waste classification
+ * @param request - The waste classification request
  * @returns Promise<DisposeResponse>
  */
-export const dispose = async (data: string): Promise<DisposeResponse> => {
+export const dispose = async (request: DisposeRequest): Promise<DisposeResponse> => {
   try {
     const response = await fetch(`${getApiUrl()}/dispose`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ data }),
+      body: JSON.stringify(request),
     });
 
     if (!response.ok) {
@@ -33,45 +42,13 @@ export const dispose = async (data: string): Promise<DisposeResponse> => {
     
     // Return mock data for development if API is not available
     return {
-      success: true,
-      data: `Processed: ${data}`,
-      message: 'Data processed successfully (mock response)',
+      waste_type: 'plastic',
+      bin_type: 'recycling',
+      fit_status: 'fits',
+      confidence: 0.85,
+      tips: ['Remove caps before recycling', 'Rinse clean before disposal'],
+      message: 'Mock response - API not available'
     };
   }
 };
 
-/**
- * Alternative dispose function for different data types
- * @param data - The data to be processed
- * @param type - The type of data being processed
- * @returns Promise<DisposeResponse>
- */
-export const disposeWithType = async (
-  data: any,
-  type: string
-): Promise<DisposeResponse> => {
-  try {
-    const response = await fetch(`${getApiUrl()}/dispose/${type}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ data, type }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-    return result;
-  } catch (error) {
-    console.error('Dispose with type API error:', error);
-    
-    return {
-      success: true,
-      data: `Processed ${type}: ${JSON.stringify(data)}`,
-      message: `Data of type ${type} processed successfully (mock response)`,
-    };
-  }
-};

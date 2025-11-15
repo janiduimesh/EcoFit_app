@@ -8,11 +8,15 @@ import Main from './app/screens/Main';
 import Home from './app/screens/Home';
 import WasteCheck from './app/screens/WasteCheck';
 import Result from './app/screens/Result';
+import Login from './app/screens/login';
+import Register from './app/screens/Register';
 
 type RootStackParamList = {
   Logo: undefined;
   Main: undefined;
   Home: undefined;
+  Login: undefined;
+  Register: undefined;
   WasteCheck: undefined;
   Result: { data: any };
 };
@@ -38,6 +42,16 @@ export default function App() {
         <Stack.Screen 
           name="Logo" 
           component={Logo} 
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="Login" 
+          component={Login} 
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="Register" 
+          component={Register} 
           options={{ headerShown: false }}
         />
         <Stack.Screen 

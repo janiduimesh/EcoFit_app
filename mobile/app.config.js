@@ -15,16 +15,25 @@ export default {
     ],
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.ecofit.mobile"
+      bundleIdentifier: "com.ecofit.mobile",
+      infoPlist: {
+        NSCameraUsageDescription: "This app needs access to camera to take photos of waste items for classification.",
+        NSPhotoLibraryUsageDescription: "This app needs access to photo library to select images of waste items for classification."
+      }
     },
     android: {
       adaptiveIcon: {
         backgroundColor: "#4CAF50"
       },
-      package: "com.ecofit.mobile"
+      package: "com.ecofit.mobile",
+      permissions: [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
     },
     extra: {
-      apiUrl: process.env.API_URL || "http://localhost:3000/api"
+      apiUrl: process.env.API_URL || "http://192.168.43.164:8000/api/v1"
     }
   }
 };

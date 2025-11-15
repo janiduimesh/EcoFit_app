@@ -12,6 +12,8 @@ type RootStackParamList = {
   Logo: undefined;
   Main: undefined;
   Home: undefined;
+  Login: undefined;
+  Register: undefined;
   Result: { data: any };
 };
 
