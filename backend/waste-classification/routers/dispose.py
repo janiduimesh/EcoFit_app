@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from ..schemas.dispose_schemas import DisposeRequest, DisposeResponse, ErrorResponse
-from services.vision.classifier import WasteClassifier
+from schemas.dispose_schemas import DisposeRequest, DisposeResponse, ErrorResponse
+from services.classifier import WasteClassifier
 from core.constants import WasteType, BinCategory, FitStatus, WASTE_TO_BIN_MAPPING, VOLUME_THRESHOLDS
 import logging
 

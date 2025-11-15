@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import dispose, health
+from routers import dispose, health
 
 app = FastAPI(
     title="EcoFit Waste Classification API",
@@ -8,10 +8,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS middleware for mobile app
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify  mobile app's origin
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

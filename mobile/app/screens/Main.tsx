@@ -14,6 +14,8 @@ type RootStackParamList = {
   Logo: undefined;
   Main: undefined;
   Home: undefined;
+  Login: undefined;
+  Register: undefined;
   WasteCheck: undefined;
   Result: { data: any };
 };
