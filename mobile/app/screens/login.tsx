@@ -10,8 +10,10 @@ import {
   Platform,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { loginUser } from '../api/user';
 
 type RootStackParamList = {
   Logo: undefined;
@@ -33,16 +35,48 @@ export default function Login({ navigation }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
+    // Validation
     if (!email.trim() || !password.trim()) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
-    // TODO: Implement actual login logic
-    console.log('Login:', { email, password });
-    navigation.replace('Main');
+    if (password.length > 72) {
+      Alert.alert('Error', 'Password must be less than 72 characters');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await loginUser({
+        email: email.trim(),
+        password: password,
+      });
+
+      console.log('Login successful:', response);
+      
+      Alert.alert('Success', response.message || 'Login successful!', [
+        { 
+          text: 'OK', 
+          onPress: () => navigation.replace('Main') 
+        },
+      ]);
+    } catch (error: any) {
+      console.error('Login error:', error);
+      
+      let errorMessage = 'Login failed. Please check your credentials and try again.';
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert('Login Failed', errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const navigateToRegister = () => {
@@ -111,8 +145,16 @@ export default function Login({ navigation }: Props) {
               <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-              <Text style={styles.loginButtonText}>Sign In</Text>
+            <TouchableOpacity 
+              style={[styles.loginButton, isLoading && styles.loginButtonDisabled]} 
+              onPress={handleLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.loginButtonText}>Sign In</Text>
+              )}
             </TouchableOpacity>
 
             <View style={styles.registerContainer}>
@@ -246,6 +288,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  loginButtonDisabled: {
+    opacity: 0.6,
   },
   loginButtonText: {
     fontSize: 18,

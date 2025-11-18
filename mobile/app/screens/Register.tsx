@@ -10,8 +10,10 @@ import {
   Platform,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { registerUser } from '../api/user';
 
 type RootStackParamList = {
   Logo: undefined;
@@ -32,12 +34,15 @@ type Props = {
 export default function Register({ navigation }: Props) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
+    // Validation
     if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
@@ -53,11 +58,41 @@ export default function Register({ navigation }: Props) {
       return;
     }
 
-    // TODO: Implement actual registration logic
-    console.log('Register:', { name, email, password });
-    Alert.alert('Success', 'Account created successfully!', [
-      { text: 'OK', onPress: () => navigation.replace('Main') },
-    ]);
+    if (password.length > 72) {
+      Alert.alert('Error', 'Password must be less than 72 characters');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await registerUser({
+        name: name.trim(),
+        email: email.trim(),
+        password: password,
+        address: address.trim() || undefined,
+      });
+
+      console.log('Registration successful:', response);
+      
+      Alert.alert('Success', response.message || 'Account created successfully!', [
+        { 
+          text: 'OK', 
+          onPress: () => navigation.replace('Main') 
+        },
+      ]);
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      
+      let errorMessage = 'Registration failed. Please try again.';
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert('Registration Failed', errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const navigateToLogin = () => {
@@ -98,15 +133,30 @@ export default function Register({ navigation }: Props) {
                 autoCorrect={false}
               />
             </View>
+        
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Email</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your email"
+                  placeholderTextColor="#9E9E9E"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email</Text>
+              <Text style={styles.label}>Full Address</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Enter your email"
+                placeholder="Enter your full address"
                 placeholderTextColor="#9E9E9E"
-                value={email}
-                onChangeText={setEmail}
+                value={address}
+                onChangeText={setAddress}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -157,8 +207,16 @@ export default function Register({ navigation }: Props) {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-              <Text style={styles.registerButtonText}>Sign Up</Text>
+            <TouchableOpacity 
+              style={[styles.registerButton, isLoading && styles.registerButtonDisabled]} 
+              onPress={handleRegister}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.registerButtonText}>Sign Up</Text>
+              )}
             </TouchableOpacity>
 
             <View style={styles.loginContainer}>
@@ -284,6 +342,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  registerButtonDisabled: {
+    opacity: 0.6,
   },
   registerButtonText: {
     fontSize: 18,

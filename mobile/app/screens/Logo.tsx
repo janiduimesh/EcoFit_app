@@ -29,7 +29,7 @@ export default function Logo({ navigation }: Props) {
   useEffect(() => {
     // Navigate to main page after 2 seconds
     const timer = setTimeout(() => {
-      navigation.replace('Main');
+      navigation.replace('Login');
     }, 2000);
 
     return () => clearTimeout(timer);
