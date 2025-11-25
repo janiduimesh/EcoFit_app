@@ -133,10 +133,18 @@ export default function WasteCheck({ navigation }: Props) {
       return;
     }
 
+    const volumeValue = parseFloat(volume);
+    if (isNaN(volumeValue) || volumeValue <= 0) {
+      Alert.alert('Error', 'Please enter a valid volume');
+      return;
+    }
+
     try {
-      // Import the dispose function
+      // Import API functions
       const { dispose } = await import('../api/dispose');
+      const { checkDistance } = await import('../api/distance');
       
+      // Prepare waste classification data
       const wasteData = {
         image_data: selectedImage || undefined,
         description: description || undefined,
@@ -146,16 +154,37 @@ export default function WasteCheck({ navigation }: Props) {
       
       console.log('Sending waste data:', wasteData);
       
-      const result = await dispose(wasteData);
+      // Call both APIs in parallel
+      const [classificationResult, distanceResult] = await Promise.all([
+        dispose(wasteData),
+        checkDistance({ volume: volumeValue })
+      ]);
       
-      console.log('Classification result:', result);
+      console.log('Classification result:', classificationResult);
+      console.log('Distance check result:', distanceResult);
       
-      // Navigate to results screen with the classification result
-      navigation.navigate('Result', { data: result });
       
-    } catch (error) {
-      console.error('Error classifying waste:', error);
-      Alert.alert('Error', 'Failed to classify waste. Please try again.');
+      const combinedResult = {
+        ...classificationResult,
+        fit_status: distanceResult.fit_status, 
+        distance_cm: distanceResult.distance_cm,
+        bin_volume_ml: distanceResult.bin_volume_ml,
+        bin_volume_liters: distanceResult.bin_volume_liters,
+        waste_volume_ml: distanceResult.waste_volume_ml,
+        fit_message: distanceResult.message, 
+      };
+      
+      navigation.navigate('Result', { data: combinedResult });
+      
+    } catch (error: any) {
+      console.error('Error processing waste:', error);
+      
+      let errorMessage = 'Failed to process waste. Please try again.';
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert('Error', errorMessage);
     }
   };
 

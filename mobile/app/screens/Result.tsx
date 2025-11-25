@@ -61,6 +61,21 @@ export default function Result({ navigation, route }: Props) {
             </Text>
           </View>
           
+          {data.fit_message && (
+            <View style={styles.messageContainer}>
+              <Text style={styles.messageText}>{data.fit_message}</Text>
+            </View>
+          )}
+                    
+          {data.bin_volume_ml && (
+            <View style={styles.resultItem}>
+              <Text style={styles.resultItemLabel}>Bin Volume:</Text>
+              <Text style={styles.resultItemValue}>
+                {data.bin_volume_ml} ml ({data.bin_volume_liters} L)
+              </Text>
+            </View>
+          )}
+                    
           <View style={styles.resultItem}>
             <Text style={styles.resultItemLabel}>Confidence:</Text>
             <Text style={styles.resultItemValue}>
@@ -160,6 +175,21 @@ const styles = StyleSheet.create({
   },
   partialFitText: {
     color: '#FF9800',
+  },
+  messageContainer: {
+    marginTop: 12,
+    marginBottom: 8,
+    padding: 12,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2E7D32',
+  },
+  messageText: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 20,
+    fontStyle: 'italic',
   },
   tipsContainer: {
     marginTop: 16,

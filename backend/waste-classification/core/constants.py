@@ -9,6 +9,10 @@ class WasteType(str, Enum):
     ELECTRONIC = "electronic"
     HAZARDOUS = "hazardous"
     OTHER = "other"
+    BATTERIES = "batteries"
+    CLOTHES = "clothes"
+    E_WASTE = "e_waste"
+    LIGHT_BULBS = "light_bulbs"
 
 class BinCategory(str, Enum):
     RECYCLING = "recycling"
@@ -32,6 +36,10 @@ WASTE_TO_BIN_MAPPING = {
     WasteType.ELECTRONIC: BinCategory.ELECTRONIC,
     WasteType.HAZARDOUS: BinCategory.HAZARDOUS,
     WasteType.OTHER: BinCategory.GENERAL,
+    WasteType.BATTERIES: BinCategory.HAZARDOUS,
+    WasteType.CLOTHES: BinCategory.GENERAL,
+    WasteType.E_WASTE: BinCategory.ELECTRONIC,
+    WasteType.LIGHT_BULBS: BinCategory.HAZARDOUS,
 }
 
 # Volume thresholds for fit status (in ml)

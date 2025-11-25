@@ -1,14 +1,16 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, File, UploadFile, Form
 from schemas.dispose_schemas import DisposeRequest, DisposeResponse, ErrorResponse
 from services.classifier import WasteClassifier
 from core.constants import WasteType, BinCategory, FitStatus, WASTE_TO_BIN_MAPPING, VOLUME_THRESHOLDS
 import logging
+import base64
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 # Initialize classifier (placeholder for now)
 classifier = WasteClassifier()
+
 
 @router.post("/dispose", response_model=DisposeResponse)
 async def classify_waste(request: DisposeRequest):
@@ -29,17 +31,18 @@ async def classify_waste(request: DisposeRequest):
         else:
             waste_type, confidence = await classifier.classify_from_text(request.description)
         
+
+        bin_volume, distance_cm = await classifier.get_bin_volume_from_sensor()
+
+        # Get waste volume from frontend
+        waste_volume = request.volume
+
+        fit_status = await WasteClassifier().check_bin_fit(waste_volume, bin_volume)
+
+
         # Determine bin type
         bin_type = WASTE_TO_BIN_MAPPING.get(waste_type, BinCategory.GENERAL)
         
-        # Check if waste fits in bin
-        volume_threshold = VOLUME_THRESHOLDS.get(bin_type, 1000)
-        if request.volume <= volume_threshold:
-            fit_status = FitStatus.FITS
-        elif request.volume <= volume_threshold * 1.5:
-            fit_status = FitStatus.PARTIAL_FIT
-        else:
-            fit_status = FitStatus.DOES_NOT_FIT
         
         # Generate tips
         tips = generate_tips(waste_type, bin_type, fit_status, request.volume)
@@ -55,6 +58,46 @@ async def classify_waste(request: DisposeRequest):
         
     except Exception as e:
         logger.error(f"Error classifying waste: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error during classification")
+
+@router.post("/dispose/upload", response_model=DisposeResponse)
+async def classify_waste_upload(
+    file: UploadFile = File(...),
+    # volume: int = Form(...),
+    input_method: str = Form("image")
+):
+    """
+    Classify waste from uploaded image file.
+    Accepts multipart/form-data with image file upload.
+    """
+    try:
+        if input_method != "image":
+            raise HTTPException(status_code=400, detail="This endpoint only accepts image files. Use input_method='image'")
+        
+        # Validate file type
+        if not file.content_type or not file.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="File must be an image (jpg, png, etc.)")
+        
+        # Read file content
+        file_content = await file.read()
+        
+        # Convert to base64 for the classifier
+        image_base64 = base64.b64encode(file_content).decode('utf-8')
+        
+        # Classify waste
+        waste_type, confidence = await classifier.classify_from_image(image_base64)
+        
+               
+        return DisposeResponse(
+            waste_type=waste_type,
+            confidence=confidence,
+            message=f"Waste classified as {waste_type.value}"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error classifying waste from upload: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error during classification")
 
 def generate_tips(waste_type: WasteType, bin_type: BinCategory, fit_status: FitStatus, volume: int) -> list:
