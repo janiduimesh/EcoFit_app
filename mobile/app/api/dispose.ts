@@ -40,15 +40,7 @@ export const dispose = async (request: DisposeRequest): Promise<DisposeResponse>
   } catch (error) {
     console.error('Dispose API error:', error);
     
-    // Return mock data for development if API is not available
-    return {
-      waste_type: 'plastic',
-      bin_type: 'recycling',
-      fit_status: 'fits',
-      confidence: 0.85,
-      tips: ['Remove caps before recycling', 'Rinse clean before disposal'],
-      message: 'Mock response - API not available'
-    };
+    throw error;
   }
 };
 

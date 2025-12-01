@@ -5,9 +5,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Image,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
+import { getBinImage } from '../utils/binImages';
 
 type RootStackParamList = {
   Home: undefined;
@@ -50,6 +52,16 @@ export default function Result({ navigation, route }: Props) {
             <Text style={styles.resultItemLabel}>Bin Type:</Text>
             <Text style={styles.resultItemValue}>{data.bin_type || 'Unknown'}</Text>
           </View>
+
+          {data.bin_type && (
+            <View style={styles.binImageContainer}>
+              <Image 
+                source={getBinImage(data.bin_type)} 
+                style={styles.binImage}
+                resizeMode="contain"
+              />
+            </View>
+          )}
           
           <View style={styles.resultItem}>
             <Text style={styles.resultItemLabel}>Fit Status:</Text>
@@ -236,5 +248,16 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  binImageContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
+    padding: 16,
+    backgroundColor: '#F9F9F9',
+    borderRadius: 12,
+  },
+  binImage: {
+    width: 200,
+    height: 200,
   },
 });

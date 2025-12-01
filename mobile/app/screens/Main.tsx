@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Image,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import OnboardingModal from '../components/OnboardingModal';
 
 type RootStackParamList = {
   Logo: undefined;
@@ -30,6 +31,43 @@ const { width } = Dimensions.get('window');
 const buttonWidth = (width - 60) / 2; // 2 buttons per row with padding
 
 export default function Main({ navigation }: Props) {
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    checkOnboardingStatus();
+  }, []);
+
+  const checkOnboardingStatus = async () => {
+    try {
+      // Dynamically import AsyncStorage to handle cases where it's not installed
+      let AsyncStorage;
+      try {
+        AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      } catch (e) {
+        console.warn('AsyncStorage not available. Please install: npm install @react-native-async-storage/async-storage');
+        return;
+      }
+
+      const onboardingCompleted = await AsyncStorage.getItem('onboarding_completed');
+      const storedUserId = await AsyncStorage.getItem('user_id');
+      
+      // If onboarding not completed, show the modal
+      if (onboardingCompleted !== 'true') {
+        setShowOnboarding(true);
+        if (storedUserId) {
+          setUserId(storedUserId);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking onboarding status:', error);
+    }
+  };
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+  };
+
   const handleCheckWasteType = () => {
     navigation.navigate('WasteCheck');
   };
@@ -89,6 +127,12 @@ export default function Main({ navigation }: Props) {
           <Text style={styles.buttonText}>Any Complains?</Text>
         </TouchableOpacity>
       </View>
+
+      <OnboardingModal
+        visible={showOnboarding}
+        onComplete={handleOnboardingComplete}
+        userId={userId || undefined}
+      />
     </SafeAreaView>
   );
 }

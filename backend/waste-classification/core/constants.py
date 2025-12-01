@@ -13,13 +13,16 @@ class WasteType(str, Enum):
     CLOTHES = "clothes"
     E_WASTE = "e_waste"
     LIGHT_BULBS = "light_bulbs"
+    UNKNOWN = "unknown"
+    PHARMACEUTICAL = "pharmaceutical"
+    RESIDUAL = "residual"
 
 class BinCategory(str, Enum):
-    RECYCLING = "recycling"
-    GENERAL = "general"
-    ORGANIC = "organic"
-    HAZARDOUS = "hazardous"
-    ELECTRONIC = "electronic"
+    RECYCLING = "blue_bin"
+    GENERAL = "yellow_bin"
+    ORGANIC = "green_bin"
+    HAZARDOUS = "black_bin"
+    ELECTRONIC = "red_bin"
 
 class FitStatus(str, Enum):
     FITS = "fits"
@@ -40,6 +43,9 @@ WASTE_TO_BIN_MAPPING = {
     WasteType.CLOTHES: BinCategory.GENERAL,
     WasteType.E_WASTE: BinCategory.ELECTRONIC,
     WasteType.LIGHT_BULBS: BinCategory.HAZARDOUS,
+    WasteType.UNKNOWN: BinCategory.GENERAL,
+    WasteType.PHARMACEUTICAL: BinCategory.HAZARDOUS,
+    WasteType.RESIDUAL: BinCategory.GENERAL,
 }
 
 # Volume thresholds for fit status (in ml)

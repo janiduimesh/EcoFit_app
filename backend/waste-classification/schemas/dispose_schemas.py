@@ -10,11 +10,14 @@ class DisposeRequest(BaseModel):
 
 class DisposeResponse(BaseModel):
     waste_type: WasteType
-    # bin_type: BinCategory
+    bin_type: BinCategory
     fit_status: FitStatus
     confidence: float = Field(..., ge=0.0, le=1.0)
     # tips: List[str] = Field(default_factory=list)
     message: Optional[str] = None
+    bin_volume_ml: Optional[float] = None
+    bin_volume_liters: Optional[float] = None
+    distance_cm: Optional[float] = None
 
 class ErrorResponse(BaseModel):
     error: str

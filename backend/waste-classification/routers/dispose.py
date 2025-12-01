@@ -37,7 +37,13 @@ async def classify_waste(request: DisposeRequest):
         # Get waste volume from frontend
         waste_volume = request.volume
 
-        fit_status = await WasteClassifier().check_bin_fit(waste_volume, bin_volume)
+        # Handle case when bin_volume is None (sensor timeout/error)
+        if bin_volume is None:
+            # Use a default bin volume if sensor unavailable
+            bin_volume = 5000  # Default to 5L if sensor unavailable
+            logger.warning("Using default bin volume due to sensor unavailability")
+
+        fit_status = await classifier.check_bin_fit(waste_volume, bin_volume)
 
 
         # Determine bin type
@@ -51,6 +57,9 @@ async def classify_waste(request: DisposeRequest):
             waste_type=waste_type,
             bin_type=bin_type,
             fit_status=fit_status,
+            bin_volume_ml=round(bin_volume, 2),
+            bin_volume_liters=round(bin_volume / 1000, 2),
+            distance_cm=distance_cm,
             confidence=confidence,
             tips=tips,
             message=f"Waste classified as {waste_type.value}"

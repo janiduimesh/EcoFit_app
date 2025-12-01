@@ -1,5 +1,12 @@
 import bcrypt
-from schemas.User_schema import UserRegisterRequest, UserRegisterResponse, UserLoginRequest, UserLoginResponse
+from schemas.User_schema import (
+    UserRegisterRequest, 
+    UserRegisterResponse, 
+    UserLoginRequest, 
+    UserLoginResponse,
+    UserProfileUpdateRequest,
+    UserProfileUpdateResponse
+)
 from typing import Optional
 import logging
 from datetime import datetime
@@ -139,3 +146,62 @@ async def login_user(user_data: UserLoginRequest) -> UserLoginResponse:
         user_id=user_id,
         token=None  # Can be implemented later with JWT
     )
+
+async def update_user_profile(user_id: str, profile_data: UserProfileUpdateRequest) -> UserProfileUpdateResponse:
+    """Update user profile information."""
+    db = get_database()
+    users_collection = db["users"]
+    
+    try:
+        # Validate user_id format
+        try:
+            object_id = ObjectId(user_id)
+        except Exception:
+            raise ValueError("Invalid user ID format")
+        
+        # Check if user exists
+        user = await users_collection.find_one({"_id": object_id})
+        if not user:
+            raise ValueError("User not found")
+        
+        # Prepare update data, excluding None values
+        update_data = {}
+        if profile_data.waste_amount is not None:
+            update_data["waste_amount"] = profile_data.waste_amount
+        if profile_data.has_recycling_bin is not None:
+            update_data["has_recycling_bin"] = profile_data.has_recycling_bin
+        if profile_data.has_compost_bin is not None:
+            update_data["has_compost_bin"] = profile_data.has_compost_bin
+        if profile_data.has_weekly_collection is not None:
+            update_data["has_weekly_collection"] = profile_data.has_weekly_collection
+        if profile_data.residence_type is not None:
+            update_data["residence_type"] = profile_data.residence_type
+        if profile_data.household_size is not None:
+            update_data["household_size"] = profile_data.household_size
+        if profile_data.onboarding_completed is not None:
+            update_data["onboarding_completed"] = profile_data.onboarding_completed
+        
+        # Add updated timestamp
+        update_data["updated_at"] = datetime.utcnow()
+        
+        # Update user in MongoDB
+        result = await users_collection.update_one(
+            {"_id": object_id},
+            {"$set": update_data}
+        )
+        
+        if result.matched_count == 0:
+            raise ValueError("User not found")
+        
+        logger.info(f"User profile updated successfully: {user_id}")
+        
+        return UserProfileUpdateResponse(
+            message="Profile updated successfully",
+            success=True
+        )
+    except ValueError as e:
+        logger.warning(f"Profile update failed: {str(e)}")
+        raise
+    except Exception as e:
+        logger.error(f"Error updating user profile: {str(e)}")
+        raise ValueError("Internal server error during profile update")

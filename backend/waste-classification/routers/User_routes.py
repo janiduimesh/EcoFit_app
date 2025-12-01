@@ -3,9 +3,11 @@ from schemas.User_schema import (
     UserRegisterRequest, 
     UserRegisterResponse,
     UserLoginRequest,
-    UserLoginResponse
+    UserLoginResponse,
+    UserProfileUpdateRequest,
+    UserProfileUpdateResponse
 )
-from services.User_service import register_user, login_user
+from services.User_service import register_user, login_user, update_user_profile
 import logging
 
 router = APIRouter()
@@ -35,6 +37,18 @@ async def login(request: UserLoginRequest):
     except Exception as e:
         logger.error(f"Error during login: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error during login")
+
+@router.put("/{user_id}/profile", response_model=UserProfileUpdateResponse, status_code=200)
+async def update_profile(user_id: str, request: UserProfileUpdateRequest):
+    try:
+        result = await update_user_profile(user_id, request)
+        return result
+    except ValueError as e:
+        logger.warning(f"Profile update failed: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error during profile update: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error during profile update")
     
 # @router.post("/logout", response_model=UserLogoutResponse, status_code=200)
 # async def logout(request: UserLogoutRequest):

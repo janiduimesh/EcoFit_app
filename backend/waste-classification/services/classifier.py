@@ -6,9 +6,24 @@ from typing import Tuple, Optional
 from pathlib import Path
 from core.constants import WasteType, FitStatus
 import logging
-from tensorflow.keras.models import load_model
 import os
 import requests
+import warnings
+
+# Suppress all warnings before importing TensorFlow
+warnings.filterwarnings('ignore')
+
+# Suppress protobuf warnings specifically
+import warnings
+warnings.filterwarnings('ignore', message='.*protobuf.*')
+warnings.filterwarnings('ignore', category=UserWarning, module='google.protobuf')
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  
+import tensorflow as tf
+tf.get_logger().setLevel('ERROR') 
+
+from tensorflow.keras.models import load_model
+import tensorflow_hub as hub
 
 logger = logging.getLogger(__name__)
 
@@ -20,27 +35,48 @@ class WasteClassifier:
     """
     
     def __init__(self):
+        print("🔄 Initializing WasteClassifier...")
+        logger.info("Initializing WasteClassifier...")
         try:
             current_dir = Path(__file__).parent  
             model_dir = current_dir.parent / "model"  
             model_path = model_dir / "waste_model_three.keras"
             
             model_path_str = str(model_path.resolve())
+            print(f"📦 Loading CNN model from: {model_path_str}")
             logger.info(f"Loading model from: {model_path_str}")
             
             self.model = load_model(model_path_str)
             self.model_loaded = True
+            print("✅ CNN model loaded successfully")
             logger.info("CNN model loaded successfully")
 
+            # Load text model with separate error handling
             text_model_path = model_dir / "model_final_text.keras"
             text_model_path_str = str(text_model_path.resolve())
-            logger.info(f"Loading text model from: {text_model_path_str}")
-            
+            print(f"📦 Loading text model from: {text_model_path_str}")
             self.text_model = load_model(text_model_path_str)
             self.text_model_loaded = True
-            logger.info("Text model loaded successfully")
-            
-            self.class_mapping = {
+            print("✅ Text model loaded successfully")
+
+            self.text_embedder = hub.load(
+                "https://tfhub.dev/google/universal-sentence-encoder/4"
+            )
+            self.text_embedder_loaded = True
+            print("✅ Text embedder loaded successfully")
+
+            self.text_class_mapping = {
+                0: WasteType.E_WASTE,
+                1: WasteType.GLASS,
+                2: WasteType.PHARMACEUTICAL,
+                3: WasteType.ORGANIC,
+                4: WasteType.PAPER,
+                5: WasteType.PLASTIC,
+                6: WasteType.RESIDUAL,
+                7: WasteType.UNKNOWN
+            }
+
+            self.image_class_mapping = {
                 0: WasteType.BATTERIES,
                 1: WasteType.CLOTHES,
                 2: WasteType.E_WASTE,
@@ -65,11 +101,14 @@ class WasteClassifier:
                 self.input_size = (224, 224)  
                 
         except Exception as e:
+            print(f"❌ Error loading model: {str(e)}")
             logger.error(f"Error loading model: {str(e)}")
             self.model = None
             self.model_loaded = False
             self.text_model = None
             self.text_model_loaded = False
+            self.text_embedder = None
+            self.text_embedder_loaded = False
             self.class_mapping = {}
             self.input_size = (224, 224)
             # ESP32 configuration (still set even if models fail)
@@ -116,13 +155,13 @@ class WasteClassifier:
             logger.info("All class probabilities:")
             for idx in range(len(predictions[0])):
                 prob = float(predictions[0][idx])
-                waste_type = self.class_mapping.get(idx, None)
+                waste_type = self.image_class_mapping.get(idx, None)
                 waste_type_str = waste_type.value if waste_type else "UNKNOWN"
                 logger.info(f"  Class {idx:2d} ({waste_type_str:15s}): {prob:.6f} ({prob*100:.2f}%)")
             
             predicted_class_idx = np.argmax(predictions[0])
             confidence = float(predictions[0][predicted_class_idx])
-            waste_type = self.class_mapping.get(predicted_class_idx, WasteType.OTHER)
+            waste_type = self.image_class_mapping.get(predicted_class_idx, WasteType.OTHER)
             
             logger.info(f"Predicted class index: {predicted_class_idx}, Waste type: {waste_type}, Confidence: {confidence:.2f}")
             
@@ -134,30 +173,36 @@ class WasteClassifier:
             return WasteType.OTHER, 0.5
     
     async def classify_from_text(self, description: str) -> Tuple[WasteType, float]:
-        
+            
         if not self.text_model_loaded or self.text_model is None:
             logger.warning("Text model not loaded, falling back to default classification")
             return WasteType.OTHER, 0.5
         
+        if not self.text_embedder_loaded or self.text_embedder is None:
+            logger.warning("Text embedder not loaded, falling back to default classification")
+            return WasteType.OTHER, 0.5
+        
         try:
-            # Preprocess text
-            processed_text = self._preprocess_text(description)
+            # processed_text = self._preprocess_text(description)
+           
+            embedding = self.text_embedder([description]).numpy()
             
+            print(f"Embedding shape: {embedding.shape}")
             # Get prediction from model
-            predictions = self.text_model.predict(processed_text, verbose=0)
+            predictions = self.text_model.predict(embedding, verbose=0)
             
             # Log all class probabilities
             logger.info("All class probabilities (text):")
             for idx in range(len(predictions[0])):
                 prob = float(predictions[0][idx])
-                waste_type = self.class_mapping.get(idx, None)
+                waste_type = self.text_class_mapping.get(idx, None)
                 waste_type_str = waste_type.value if waste_type else "UNKNOWN"
                 logger.info(f"  Class {idx:2d} ({waste_type_str:15s}): {prob:.6f} ({prob*100:.2f}%)")
             
             # Get predicted class
             predicted_class_idx = np.argmax(predictions[0])
             confidence = float(predictions[0][predicted_class_idx])
-            waste_type = self.class_mapping.get(predicted_class_idx, WasteType.OTHER)
+            waste_type = self.text_class_mapping.get(predicted_class_idx, WasteType.OTHER)
             
             logger.info(f"Predicted class index: {predicted_class_idx}, Waste type: {waste_type}, Confidence: {confidence:.2f}")
             

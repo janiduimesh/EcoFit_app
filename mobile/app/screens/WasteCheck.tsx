@@ -32,6 +32,7 @@ const { width } = Dimensions.get('window');
 
 export default function WasteCheck({ navigation }: Props) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [volume, setVolume] = useState('');
   const [inputMethod, setInputMethod] = useState<'image' | 'description'>('image');
@@ -81,6 +82,10 @@ export default function WasteCheck({ navigation }: Props) {
 
       if (!result.canceled && result.assets[0]) {
         setSelectedImage(result.assets[0].uri);
+        // Store base64 data for API
+        if (result.assets[0].base64) {
+          setImageBase64(result.assets[0].base64);
+        }
       }
     } catch (error) {
       console.error('Error taking photo:', error);
@@ -104,14 +109,17 @@ export default function WasteCheck({ navigation }: Props) {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
+        allowsEditing: false,  // Change to false
         quality: 0.8,
         base64: true,
       });
 
       if (!result.canceled && result.assets[0]) {
         setSelectedImage(result.assets[0].uri);
+        // Store base64 data for API
+        if (result.assets[0].base64) {
+          setImageBase64(result.assets[0].base64);
+        }
       }
     } catch (error) {
       console.error('Error selecting image:', error);
@@ -142,12 +150,11 @@ export default function WasteCheck({ navigation }: Props) {
     try {
       // Import API functions
       const { dispose } = await import('../api/dispose');
-      const { checkDistance } = await import('../api/distance');
       
       // Prepare waste classification data
       const wasteData = {
-        image_data: selectedImage || undefined,
-        description: description || undefined,
+        image_data: inputMethod === 'image' ? imageBase64 || undefined : undefined,
+        description: inputMethod === 'description' ? description.trim() || undefined : undefined,
         volume: parseInt(volume),
         input_method: inputMethod,
       };
@@ -155,26 +162,11 @@ export default function WasteCheck({ navigation }: Props) {
       console.log('Sending waste data:', wasteData);
       
       // Call both APIs in parallel
-      const [classificationResult, distanceResult] = await Promise.all([
-        dispose(wasteData),
-        checkDistance({ volume: volumeValue })
-      ]);
+      const classificationResult = await dispose(wasteData);
       
       console.log('Classification result:', classificationResult);
-      console.log('Distance check result:', distanceResult);
       
-      
-      const combinedResult = {
-        ...classificationResult,
-        fit_status: distanceResult.fit_status, 
-        distance_cm: distanceResult.distance_cm,
-        bin_volume_ml: distanceResult.bin_volume_ml,
-        bin_volume_liters: distanceResult.bin_volume_liters,
-        waste_volume_ml: distanceResult.waste_volume_ml,
-        fit_message: distanceResult.message, 
-      };
-      
-      navigation.navigate('Result', { data: combinedResult });
+      navigation.navigate('Result', { data: classificationResult });
       
     } catch (error: any) {
       console.error('Error processing waste:', error);
@@ -209,7 +201,10 @@ export default function WasteCheck({ navigation }: Props) {
           <View style={styles.methodSelector}>
             <TouchableOpacity 
               style={[styles.methodButton, inputMethod === 'image' && styles.methodButtonActive]}
-              onPress={() => setInputMethod('image')}
+              onPress={() => {
+                setInputMethod('image');
+                setDescription(''); // Clear description when switching to image
+              }}
             >
               <Text style={[styles.methodButtonText, inputMethod === 'image' && styles.methodButtonTextActive]}>
                 📷 Image
@@ -217,7 +212,11 @@ export default function WasteCheck({ navigation }: Props) {
             </TouchableOpacity>
             <TouchableOpacity 
               style={[styles.methodButton, inputMethod === 'description' && styles.methodButtonActive]}
-              onPress={() => setInputMethod('description')}
+              onPress={() => {
+                setInputMethod('description');
+                setSelectedImage(null); // Clear image when switching to description
+                setImageBase64(null);
+              }}
             >
               <Text style={[styles.methodButtonText, inputMethod === 'description' && styles.methodButtonTextActive]}>
                 ✏️ Description

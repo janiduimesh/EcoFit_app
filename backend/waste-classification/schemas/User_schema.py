@@ -21,3 +21,16 @@ class UserLoginResponse(BaseModel):
     token: Optional[str] = None
     user_id: Optional[str] = None
 
+class UserProfileUpdateRequest(BaseModel):
+    waste_amount: Optional[str] = None
+    has_recycling_bin: Optional[bool] = None
+    has_compost_bin: Optional[bool] = None
+    has_weekly_collection: Optional[bool] = None
+    residence_type: Optional[str] = None
+    household_size: Optional[str] = None
+    onboarding_completed: Optional[bool] = None
+
+class UserProfileUpdateResponse(BaseModel):
+    message: str
+    success: bool
+

@@ -75,6 +75,16 @@ export default function Register({ navigation }: Props) {
 
       console.log('Registration successful:', response);
       
+      // Store user ID for onboarding
+      if (response.user_id) {
+        try {
+          const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+          await AsyncStorage.setItem('user_id', response.user_id);
+        } catch (storageError) {
+          console.warn('Could not store user ID:', storageError);
+        }
+      }
+      
       Alert.alert('Success', response.message || 'Account created successfully!', [
         { 
           text: 'OK', 
