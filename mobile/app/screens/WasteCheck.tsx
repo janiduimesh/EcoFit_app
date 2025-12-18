@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   Alert,
   Dimensions,
   ScrollView,
+  ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
@@ -36,6 +38,24 @@ export default function WasteCheck({ navigation }: Props) {
   const [description, setDescription] = useState('');
   const [volume, setVolume] = useState('');
   const [inputMethod, setInputMethod] = useState<'image' | 'description'>('image');
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    // Load user_id from AsyncStorage
+    const loadUserId = async () => {
+      try {
+        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+        const storedUserId = await AsyncStorage.getItem('user_id');
+        if (storedUserId) {
+          setUserId(storedUserId);
+        }
+      } catch (error) {
+        console.warn('Could not load user_id:', error);
+      }
+    };
+    loadUserId();
+  }, []);
 
   const handleImageSelect = () => {
     Alert.alert(
@@ -136,26 +156,28 @@ export default function WasteCheck({ navigation }: Props) {
       Alert.alert('Error', 'Please describe your waste');
       return;
     }
-    if (!volume.trim()) {
-      Alert.alert('Error', 'Please enter the waste volume');
-      return;
-    }
-
-    const volumeValue = parseFloat(volume);
-    if (isNaN(volumeValue) || volumeValue <= 0) {
-      Alert.alert('Error', 'Please enter a valid volume');
-      return;
+ 
+    let volumeValue: number | undefined = undefined;
+    if (volume.trim()) {
+      volumeValue = parseFloat(volume);
+      if (isNaN(volumeValue) || volumeValue <= 0) {
+        Alert.alert('Error', 'Please enter a valid volume');
+        return;
+      }
     }
 
     try {
+      setIsLoading(true);
+      
       // Import API functions
       const { dispose } = await import('../api/dispose');
       
       // Prepare waste classification data
       const wasteData = {
+        user_id: userId || undefined,
         image_data: inputMethod === 'image' ? imageBase64 || undefined : undefined,
         description: inputMethod === 'description' ? description.trim() || undefined : undefined,
-        volume: parseInt(volume),
+        volume: volumeValue ? parseInt(volume) : undefined, 
         input_method: inputMethod,
       };
       
@@ -165,6 +187,37 @@ export default function WasteCheck({ navigation }: Props) {
       const classificationResult = await dispose(wasteData);
       
       console.log('Classification result:', classificationResult);
+      
+      // Check if waste type is "other" or "unknown", or confidence is too low
+      const wasteType = classificationResult.waste_type?.toLowerCase();
+      const confidence = classificationResult.confidence || 0;
+      const CONFIDENCE_THRESHOLD = 0.5; 
+      
+      const isUnknownType = wasteType === 'other' || wasteType === 'unknown';
+      const isLowConfidence = confidence < CONFIDENCE_THRESHOLD;
+      
+      if (isUnknownType || isLowConfidence) {
+        const message = isUnknownType
+          ? 'Could not identify the waste type. Please add a clearer image or provide a more detailed description and try again.'
+          : `Classification confidence is too low (${Math.round(confidence * 100)}%). Please add a clearer image or provide a more detailed description and try again.`;
+        
+        Alert.alert(
+          'Classification Uncertain',
+          message,
+          [
+            {
+              text: 'Try Again',
+              onPress: () => {
+                if (inputMethod === 'image') {
+                  setSelectedImage(null);
+                  setImageBase64(null);
+                }
+              },
+            },
+          ]
+        );
+        return;
+      }
       
       navigation.navigate('Result', { data: classificationResult });
       
@@ -177,6 +230,8 @@ export default function WasteCheck({ navigation }: Props) {
       }
       
       Alert.alert('Error', errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -290,11 +345,32 @@ export default function WasteCheck({ navigation }: Props) {
           </View>
 
           {/* Submit Button */}
-          <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-            <Text style={styles.submitButtonText}>🔍 Check Waste Type</Text>
+          <TouchableOpacity 
+            style={[styles.submitButton, isLoading && styles.submitButtonDisabled]} 
+            onPress={handleSubmit}
+            disabled={isLoading}
+          >
+            <Text style={styles.submitButtonText}>
+              {isLoading ? 'Processing...' : '🔍 Check Waste Type'}
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Loading Overlay */}
+      <Modal
+        visible={isLoading}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#2E7D32" />
+            <Text style={styles.loadingText}>Analyzing waste...</Text>
+            <Text style={styles.loadingSubtext}>Please wait</Text>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -519,5 +595,37 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#A5D6A7',
+    opacity: 0.7,
+  },
+  loadingOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingContainer: {
+    backgroundColor: '#FFFFFF',
+    padding: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2E7D32',
+  },
+  loadingSubtext: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#666',
   },
 });

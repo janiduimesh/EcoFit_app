@@ -28,6 +28,7 @@ class FitStatus(str, Enum):
     FITS = "fits"
     DOES_NOT_FIT = "does_not_fit"
     PARTIAL_FIT = "partial_fit"
+    UNKNOWN = "unknown"
 
 # Waste type to bin mapping
 WASTE_TO_BIN_MAPPING = {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,13 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  Alert,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
 import { getBinImage } from '../utils/binImages';
+import TipsModal from '../components/TipsModal';
+import { getTips, TipsResponse } from '../api/tips';
 
 type RootStackParamList = {
   Home: undefined;
@@ -26,6 +29,25 @@ type Props = {
 
 export default function Result({ navigation, route }: Props) {
   const { data } = route.params;
+  const [showTipsModal, setShowTipsModal] = useState(false);
+  const [tipsData, setTipsData] = useState<TipsResponse | null>(null);
+  const [loadingTips, setLoadingTips] = useState(false);
+  const [userId, setUserId] = useState<string>('');
+
+  useEffect(() => {
+    const loadUserId = async () => {
+      try {
+        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+        const storedUserId = await AsyncStorage.getItem('user_id');
+        if (storedUserId) {
+          setUserId(storedUserId);
+        }
+      } catch (error) {
+        console.warn('Could not load user_id:', error);
+      }
+    };
+    loadUserId();
+  }, []);
 
   const handleGoBack = () => {
     navigation.goBack();
@@ -33,6 +55,30 @@ export default function Result({ navigation, route }: Props) {
 
   const handleNewEntry = () => {
     navigation.navigate('Home');
+  };
+
+  const handleGetTips = async () => {
+    if (!userId) {
+      Alert.alert('Error', 'Please log in to get personalized recommendations');
+      return;
+    }
+
+    setLoadingTips(true);
+    setShowTipsModal(true);
+    
+    try {
+      const tips = await getTips({
+        user_id: userId,
+        waste_type: data.waste_type,
+      });
+      setTipsData(tips);
+    } catch (error) {
+      console.error('Error fetching tips:', error);
+      Alert.alert('Error', 'Failed to get recommendations. Please try again.');
+      setShowTipsModal(false);
+    } finally {
+      setLoadingTips(false);
+    }
   };
 
   return (
@@ -63,15 +109,17 @@ export default function Result({ navigation, route }: Props) {
             </View>
           )}
           
-          <View style={styles.resultItem}>
-            <Text style={styles.resultItemLabel}>Fit Status:</Text>
-            <Text style={[styles.resultItemValue, 
-              data.fit_status === 'fits' ? styles.fitsText : 
-              data.fit_status === 'does_not_fit' ? styles.noFitText : 
-              styles.partialFitText]}>
-              {data.fit_status || 'Unknown'}
-            </Text>
-          </View>
+          {data.fit_status && data.fit_status !== 'unknown' && (
+            <View style={styles.resultItem}>
+              <Text style={styles.resultItemLabel}>Fit Status:</Text>
+              <Text style={[styles.resultItemValue, 
+                data.fit_status === 'fits' ? styles.fitsText : 
+                data.fit_status === 'does_not_fit' ? styles.noFitText : 
+                styles.partialFitText]}>
+                {data.fit_status}
+              </Text>
+            </View>
+          )}
           
           {data.fit_message && (
             <View style={styles.messageContainer}>
@@ -95,15 +143,15 @@ export default function Result({ navigation, route }: Props) {
             </Text>
           </View>
           
-          {data.tips && data.tips.length > 0 && (
-            <View style={styles.tipsContainer}>
-              <Text style={styles.tipsLabel}>Disposal Tips:</Text>
-              {data.tips.map((tip: string, index: number) => (
-                <Text key={index} style={styles.tipText}>• {tip}</Text>
-              ))}
-            </View>
-          )}
         </View>
+
+        {/* Recommend Disposal Button */}
+        <TouchableOpacity
+          style={styles.recommendButton}
+          onPress={handleGetTips}
+        >
+          <Text style={styles.recommendButtonText}>💡 Recommend me disposal method</Text>
+        </TouchableOpacity>
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity
@@ -121,6 +169,15 @@ export default function Result({ navigation, route }: Props) {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Tips Modal */}
+      <TipsModal
+        visible={showTipsModal}
+        onClose={() => setShowTipsModal(false)}
+        tips={tipsData}
+        userId={userId}
+        isLoading={loadingTips}
+      />
     </ScrollView>
   );
 }
@@ -203,23 +260,23 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontStyle: 'italic',
   },
-  tipsContainer: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+  recommendButton: {
+    backgroundColor: '#2E7D32',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#2E7D32',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  tipsLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  tipText: {
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-    marginBottom: 4,
+  recommendButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
   },
   buttonContainer: {
     flexDirection: 'row',

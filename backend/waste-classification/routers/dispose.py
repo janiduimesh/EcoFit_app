@@ -1,15 +1,34 @@
 from fastapi import APIRouter, HTTPException, File, UploadFile, Form
-from schemas.dispose_schemas import DisposeRequest, DisposeResponse, ErrorResponse
+from schemas.dispose_schemas import (
+    DisposeRequest, DisposeResponse, ErrorResponse,
+    TipsRequest, TipsResponse, TipsFeedbackRequest, TipsFeedbackResponse
+)
 from services.classifier import WasteClassifier
 from core.constants import WasteType, BinCategory, FitStatus, WASTE_TO_BIN_MAPPING, VOLUME_THRESHOLDS
+from core.database import get_database
+from pymongo import ReturnDocument
 import logging
 import base64
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-# Initialize classifier (placeholder for now)
 classifier = WasteClassifier()
+
+async def get_next_tip_id() -> str:
+    """Generate next sequential tip ID like TIP_0001"""
+    db = get_database()
+    counters = db["counters"]
+    
+    result = await counters.find_one_and_update(
+        {"_id": "tip_id"},
+        {"$inc": {"sequence_value": 1}},
+        upsert=True,
+        return_document=ReturnDocument.AFTER
+    )
+    
+    sequence = result.get("sequence_value", 1) if result else 1
+    return f"TIP_{sequence:04d}"
 
 
 @router.post("/dispose", response_model=DisposeResponse)
@@ -18,14 +37,12 @@ async def classify_waste(request: DisposeRequest):
     Classify waste based on image or description and return disposal guidance.
     """
     try:
-        # Validate input
         if request.input_method == "image" and not request.image_data:
             raise HTTPException(status_code=400, detail="Image data required for image input method")
         
         if request.input_method == "description" and not request.description:
             raise HTTPException(status_code=400, detail="Description required for description input method")
         
-        # Classify waste
         if request.input_method == "image":
             waste_type, confidence = await classifier.classify_from_image(request.image_data)
         else:
@@ -34,25 +51,20 @@ async def classify_waste(request: DisposeRequest):
 
         bin_volume, distance_cm = await classifier.get_bin_volume_from_sensor()
 
-        # Get waste volume from frontend
-        waste_volume = request.volume
+        waste_volume = request.volume if request.volume is not None else 0
 
-        # Handle case when bin_volume is None (sensor timeout/error)
         if bin_volume is None:
-            # Use a default bin volume if sensor unavailable
-            bin_volume = 5000  # Default to 5L if sensor unavailable
+            bin_volume = 5000  
             logger.warning("Using default bin volume due to sensor unavailability")
 
-        fit_status = await classifier.check_bin_fit(waste_volume, bin_volume)
+        if request.volume is not None:
+            fit_status = await classifier.check_bin_fit(waste_volume, bin_volume)
+        else:
+            fit_status = FitStatus.UNKNOWN 
 
 
-        # Determine bin type
         bin_type = WASTE_TO_BIN_MAPPING.get(waste_type, BinCategory.GENERAL)
-        
-        
-        # Generate tips
-        tips = generate_tips(waste_type, bin_type, fit_status, request.volume)
-        
+                
         return DisposeResponse(
             waste_type=waste_type,
             bin_type=bin_type,
@@ -61,13 +73,63 @@ async def classify_waste(request: DisposeRequest):
             bin_volume_liters=round(bin_volume / 1000, 2),
             distance_cm=distance_cm,
             confidence=confidence,
-            tips=tips,
             message=f"Waste classified as {waste_type.value}"
         )
         
     except Exception as e:
         logger.error(f"Error classifying waste: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error during classification")
+
+@router.post("/dispose/tips", response_model=TipsResponse)
+async def generate_tips(request: TipsRequest):
+    """
+    Get personalized disposal tips based on waste type and user profile.
+    """
+    try:
+        # Convert string to WasteType enum
+        try:
+            waste_type_enum = WasteType(request.waste_type.lower())
+        except ValueError:
+            waste_type_enum = WasteType.OTHER
+        
+        # Generate tips using classifier
+        tips = await classifier.generate_tips(waste_type_enum, request.user_id)
+        
+        # Generate tip ID
+        tip_id = await get_next_tip_id()
+        
+        return TipsResponse(
+            tip_id=tip_id,
+            tips=tips if tips else [],
+        )
+        
+    except Exception as e:
+        logger.error(f"Error generating tips: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error during tips generation")
+
+
+@router.post("/dispose/tips/feedback", response_model=TipsFeedbackResponse)
+async def submit_feedback(request: TipsFeedbackRequest):
+    """
+    Submit feedback (like/dislike) for a tip recommendation.
+    """
+    try:
+        if request.feedback not in ["like", "dislike"]:
+            raise HTTPException(status_code=400, detail="Feedback must be 'like' or 'dislike'")
+        
+        logger.info(f"Feedback received - Tip: {request.tip_id}, User: {request.user_id}, Feedback: {request.feedback}")
+        
+        return TipsFeedbackResponse(
+            success=True,
+            message="Thank you for your feedback!"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error submitting feedback: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error during feedback submission")
+
 
 @router.post("/dispose/upload", response_model=DisposeResponse)
 async def classify_waste_upload(
@@ -109,45 +171,4 @@ async def classify_waste_upload(
         logger.error(f"Error classifying waste from upload: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error during classification")
 
-def generate_tips(waste_type: WasteType, bin_type: BinCategory, fit_status: FitStatus, volume: int) -> list:
-    """Generate disposal tips based on classification results."""
-    tips = []
-    
-    # General tips based on waste type
-    if waste_type == WasteType.PLASTIC:
-        tips.extend([
-            "Remove any labels or caps before recycling",
-            "Rinse clean before disposal",
-            "Check if it's recyclable in your area"
-        ])
-    elif waste_type == WasteType.PAPER:
-        tips.extend([
-            "Remove any plastic or metal components",
-            "Keep dry to prevent contamination",
-            "Shred sensitive documents before recycling"
-        ])
-    elif waste_type == WasteType.GLASS:
-        tips.extend([
-            "Remove metal caps and labels",
-            "Rinse clean before recycling",
-            "Don't mix different colored glass"
-        ])
-    elif waste_type == WasteType.ORGANIC:
-        tips.extend([
-            "Compost if possible",
-            "Remove any non-organic materials",
-            "Keep in sealed container to prevent odors"
-        ])
-    
-    # Tips based on fit status
-    if fit_status == FitStatus.DOES_NOT_FIT:
-        tips.append("Consider breaking down into smaller pieces")
-        tips.append("Look for larger disposal bins in your area")
-    elif fit_status == FitStatus.PARTIAL_FIT:
-        tips.append("This item is quite large - ensure it fits properly")
-    
-    # Volume-based tips
-    if volume > 2000:
-        tips.append("Large item - consider scheduling a pickup")
-    
-    return tips
+

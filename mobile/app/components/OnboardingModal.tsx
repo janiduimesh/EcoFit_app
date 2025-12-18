@@ -28,11 +28,10 @@ const WASTE_AMOUNTS = [
 ];
 
 const RESIDENCE_TYPES = [
-  'Single-family home',
-  'Multi-family home',
-  'Apartment building',
-  'Condo/Townhouse',
-  'Mobile home',
+  'House',
+  'Apartment',
+  'Rural',
+  'Shared',
   'Other',
 ];
 

@@ -10,9 +10,10 @@ export interface DisposeResponse {
 }
 
 export interface DisposeRequest {
+  user_id?: string;
   image_data?: string;
   description?: string;
-  volume: number;
+  volume?: number;  
   input_method: 'image' | 'description';
 }
 
