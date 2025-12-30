@@ -5,19 +5,21 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import Logo from './app/screens/Logo';
 import Main from './app/screens/Main';
-import Home from './app/screens/Home';
+//import Home from './app/screens/Home';
 import WasteCheck from './app/screens/WasteCheck';
 import Result from './app/screens/Result';
 import Login from './app/screens/login';
 import Register from './app/screens/Register';
+import AIAgent from './app/screens/AIAgent';
 
 type RootStackParamList = {
   Logo: undefined;
   Main: undefined;
-  Home: undefined;
+  //Home: undefined;
   Login: undefined;
   Register: undefined;
   WasteCheck: undefined;
+  AIAgent: undefined;
   Result: { data: any };
 };
 
@@ -59,15 +61,20 @@ export default function App() {
           component={Main} 
           options={{ headerShown: false }}
         />
-        <Stack.Screen 
+        {/* <Stack.Screen 
           name="Home" 
           component={Home} 
           options={{ title: 'Check Waste Type' }}
-        />
+        /> */}
         <Stack.Screen 
           name="WasteCheck" 
           component={WasteCheck} 
           options={{ title: 'Check Waste Type' }}
+        />
+        <Stack.Screen 
+          name="AIAgent" 
+          component={AIAgent} 
+          options={{ title: 'AI Agent' }}
         />
         <Stack.Screen 
           name="Result" 

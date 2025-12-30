@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import dispose, health
+from routers import dispose, health, rag
 
 app = FastAPI(
     title="EcoFit Waste Classification API",
@@ -19,6 +19,7 @@ app.add_middleware(
 # Include routers
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(dispose.router, prefix="/api/v1", tags=["dispose"])
+app.include_router(rag.router, prefix="/api/v1", tags=["rag"])
 
 @app.get("/")
 async def root():
