@@ -21,7 +21,7 @@ export default function Chatbot() {
   const [input, setInput] = useState("");
   const [botTyping, setBotTyping] = useState(false);
   const listRef = useRef<FlatList>(null);
-  const API_URL = "http://192.168.56.1:8000/rag/ask";
+  const API_URL = "http://192.168.1.9:8000/api/v1/rag/ask";
 
   // Auto-scroll when messages update
   useEffect(() => {

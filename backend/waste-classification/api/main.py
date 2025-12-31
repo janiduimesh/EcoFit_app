@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import dispose, health, rag
+from routers import dispose, health, rag, User_routers
+from core.database import connect_to_mongo, close_mongo_connection
 
 app = FastAPI(
     title="EcoFit Waste Classification API",
@@ -16,10 +17,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.on_event("startup")
+async def startup_db_client():
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info("Starting database connection...")
+    print("🔄 Starting database connection...")
+    await connect_to_mongo()
+
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    await close_mongo_connection()
+
+@app.get("/ping")
+def ping():
+    return {"status": "ok"}
+
+
 # Include routers
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(dispose.router, prefix="/api/v1", tags=["dispose"])
 app.include_router(rag.router, prefix="/api/v1", tags=["rag"])
+app.include_router(User_routers.router, prefix="/api/v1/user", tags=["user"])
 
 @app.get("/")
 async def root():

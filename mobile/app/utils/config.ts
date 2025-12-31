@@ -3,7 +3,7 @@
 // export const API_URL = process.env.API_URL || 'http://192.168.43.164:8000/api/v1';
 
 //Sliit Wifi
-export const API_URL = process.env.API_URL || 'http://10.120.118.154:8081/api/v1';
+export const API_URL = process.env.API_URL || 'http://192.168.1.9:8081/api/v1';
 
 // Function to get the API URL from expo config when available
 export const getApiUrl = () => {

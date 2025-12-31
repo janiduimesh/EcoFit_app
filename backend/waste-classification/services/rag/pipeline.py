@@ -5,6 +5,7 @@ GROQ_MODEL = "llama-3.1-8b-instant"
 
 
 def rag_answer(query):
+    print(f"[RAG QUERY] {query}")
     chunks = retrieve_chunks(query)
     context, used_ids = build_context(chunks)
 
