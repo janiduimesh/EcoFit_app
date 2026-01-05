@@ -41,20 +41,39 @@ def retrieve_chunks(query, top_k=20, rerank_top_k=10, final_k=5):
     return rerank_set[:final_k]
 
 
+# def build_context(chunks, max_tokens=6500):
+#     merged = []
+#     used_ids = []
+#     total_tokens = 0
+
+#     for c in chunks:
+#         tagged = f"[CHUNK {c['chunk_id']}]\n{c['text']}\n"
+#         tok = count_tokens(tagged)
+
+#         if total_tokens + tok > max_tokens:
+#             continue
+
+#         merged.append(tagged)
+#         used_ids.append(c["chunk_id"])
+#         total_tokens += tok
+
+#     return "\n".join(merged), used_ids
+
 def build_context(chunks, max_tokens=6500):
     merged = []
-    used_ids = []
+    used_chunks = []
     total_tokens = 0
 
     for c in chunks:
-        tagged = f"[CHUNK {c['chunk_id']}]\n{c['text']}\n"
+        tagged = f"{c['text']}\n"
         tok = count_tokens(tagged)
 
         if total_tokens + tok > max_tokens:
             continue
 
         merged.append(tagged)
-        used_ids.append(c["chunk_id"])
+        used_chunks.append(c)
         total_tokens += tok
 
-    return "\n".join(merged), used_ids
+    return "\n".join(merged), used_chunks
+
