@@ -35,6 +35,7 @@ export default function Register({ navigation }: Props) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
+  const [area, setArea] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -71,6 +72,7 @@ export default function Register({ navigation }: Props) {
         email: email.trim(),
         password: password,
         address: address.trim() || undefined,
+        area: area.trim(),
       });
 
       console.log('Registration successful:', response);
@@ -168,6 +170,20 @@ export default function Register({ navigation }: Props) {
                 placeholderTextColor="#9E9E9E"
                 value={address}
                 onChangeText={setAddress}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Area</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter your area for waste collection"
+                placeholderTextColor="#9E9E9E"
+                value={area}
+                onChangeText={setArea}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}

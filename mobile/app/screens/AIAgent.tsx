@@ -12,7 +12,9 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from "react-native";
-
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { loginUser } from "../api/user";
+import { getApiUrl } from "../utils/config";
 
 export default function Chatbot() {
   const [messages, setMessages] = useState([
@@ -20,8 +22,10 @@ export default function Chatbot() {
   ]);
   const [input, setInput] = useState("");
   const [botTyping, setBotTyping] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const listRef = useRef<FlatList>(null);
-  const API_URL = "http://192.168.1.9:8000/api/v1/rag/ask";
+  //const API_URL = "http://192.168.137.1:8000/api/v1/rag/ask";
+   const API_URL = `${getApiUrl()}/rag/ask`;
 
   // Auto-scroll when messages update
   useEffect(() => {
@@ -30,8 +34,20 @@ export default function Chatbot() {
     }
   }, [messages]);
 
+  // Load user_id from AsyncStorage on startup
+  useEffect(() => {
+    const loadUserId = async () => {
+      const storedId = await AsyncStorage.getItem("user_id");
+      if (storedId) setUserId(storedId);
+    };
+    loadUserId();
+  }, []);
+
   const sendMessage = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || !userId) {
+      alert("Please log in first.");
+      return;
+    }
 
     const userMessage = {
       id: Date.now().toString(),
@@ -41,25 +57,29 @@ export default function Chatbot() {
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
-
-    // Simulated AI typing
     setBotTyping(true);
 
-    console.log("Sending query:", userMessage.text);
-
     try {
+      console.log("Sending query:", userMessage.text, "with user_id:", userId);
+
       const response = await fetch(API_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ query: userMessage.text }),
+        body: JSON.stringify({ 
+          query: userMessage.text,
+          user_id: userId, 
+        }),
       });
 
-      console.log("Response status:", response.status);
+      //console.log("Response status:", response.status);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
 
       const data = await response.json();
-      console.log("Response JSON:", data);
+      console.log("RAG response:", data);
 
       const botMessage = {
         id: Date.now().toString(),

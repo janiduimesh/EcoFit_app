@@ -4,9 +4,15 @@ from services.rag.llm import client
 GROQ_MODEL = "llama-3.1-8b-instant"
 
 
-def rag_answer(query):
-    print(f"[RAG QUERY] {query}")
-    chunks = retrieve_chunks(query)
+def rag_answer(query: str, user_area: str):
+    print(f"[RAG QUERY] {query} | AREA: {user_area}")
+
+    #Area-aware query
+    augmented_query = f"""
+User area: {user_area}
+Question: {query}
+"""
+    chunks = retrieve_chunks(augmented_query)
     context, used_ids = build_context(chunks)
 
     prompt = f"""
@@ -15,7 +21,6 @@ You are a helpful RAG-based assistant.
 Rules:
 1. Use ONLY the information inside CONTEXT.
 2. If the answer is not in CONTEXT, say: "I don't know based on the provided documents."
-3. Cite ONLY the CHUNK IDs appearing in the context.
 
 ### CONTEXT:
 {context}
@@ -23,12 +28,14 @@ Rules:
 ### QUESTION:
 {query}
 
+(User is from: {user_area})
+
 ### FORMAT:
 Answer: <your answer>
 
-Sources:
-- CHUNK <id>
-"""
+# Sources:
+# - CHUNK <id>
+# """
 
     response = client.chat.completions.create(
         model=GROQ_MODEL,

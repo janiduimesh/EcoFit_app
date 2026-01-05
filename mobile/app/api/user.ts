@@ -5,6 +5,7 @@ export interface UserRegisterRequest {
   email: string;
   password: string;
   address?: string;
+  area: string;
 }
 
 export interface UserRegisterResponse {
