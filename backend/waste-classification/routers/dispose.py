@@ -83,7 +83,8 @@ async def classify_waste(request: DisposeRequest):
 @router.post("/dispose/tips", response_model=TipsResponse)
 async def generate_tips(request: TipsRequest):
     """
-    Get personalized disposal tips based on waste type and user profile.
+    Get personalized disposal tip based on waste type and user profile.
+    Fetches a random tip from database matching the predicted technique.
     """
     try:
         # Convert string to WasteType enum
@@ -92,16 +93,27 @@ async def generate_tips(request: TipsRequest):
         except ValueError:
             waste_type_enum = WasteType.OTHER
         
-        # Generate tips using classifier
-        tips = await classifier.generate_tips(waste_type_enum, request.user_id)
+        tip_data, technique,tip_workflow= await classifier.generate_tips(waste_type_enum, request.user_id)
         
-        # Generate tip ID
-        tip_id = await get_next_tip_id()
-        
-        return TipsResponse(
-            tip_id=tip_id,
-            tips=tips if tips else [],
-        )
+        if tip_data:
+            return TipsResponse(
+                tip_id=tip_data["tip_id"],
+                technique=technique,
+                title=tip_data["title"],
+                description=tip_data["description"],
+                tip_workflow=tip_workflow or "",
+                message=f"Tip for {technique} technique"
+            )
+        else:
+            # No tip found in database
+            return TipsResponse(
+                tip_id="",
+                technique=technique,
+                title="No tip available",
+                description=f"No tips found for {waste_type_enum.value} with {technique} technique.",
+                tip_workflow="",
+                message="No matching tip in database"
+            )
         
     except Exception as e:
         logger.error(f"Error generating tips: {str(e)}")

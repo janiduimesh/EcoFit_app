@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import OnboardingModal from '../components/OnboardingModal';
+import BinOverflowModal from '../components/BinOverflowModal';
 
 type RootStackParamList = {
   Logo: undefined;
@@ -32,6 +33,7 @@ const buttonWidth = (width - 60) / 2; // 2 buttons per row with padding
 
 export default function Main({ navigation }: Props) {
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showBinOverflow, setShowBinOverflow] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -87,6 +89,10 @@ export default function Main({ navigation }: Props) {
     console.log('Complaints pressed');
   };
 
+  const handleBinOverflow = () => {
+    setShowBinOverflow(true);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -126,12 +132,25 @@ export default function Main({ navigation }: Props) {
         >
           <Text style={styles.buttonText}>Any Complains?</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, styles.overflowButton, { width: buttonWidth }]}
+          onPress={handleBinOverflow}
+        >
+          <Text style={styles.overflowIcon}>📊</Text>
+          <Text style={styles.buttonText}>Bin Overflow Forecast</Text>
+        </TouchableOpacity>
       </View>
 
       <OnboardingModal
         visible={showOnboarding}
         onComplete={handleOnboardingComplete}
         userId={userId || undefined}
+      />
+
+      <BinOverflowModal
+        visible={showBinOverflow}
+        onClose={() => setShowBinOverflow(false)}
       />
     </SafeAreaView>
   );
@@ -200,5 +219,15 @@ const styles = StyleSheet.create({
     color: '#2E7D32', // Dark green
     textAlign: 'center',
     lineHeight: 22,
+  },
+  overflowButton: {
+    backgroundColor: '#E8F5E9',
+    borderWidth: 2,
+    borderColor: '#2E7D32',
+    borderStyle: 'dashed',
+  },
+  overflowIcon: {
+    fontSize: 28,
+    marginBottom: 8,
   },
 });

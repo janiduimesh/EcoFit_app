@@ -78,20 +78,34 @@ export default function TipsModal({
             </View>
           ) : tips ? (
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-              {/* Tips List */}
-              <View style={styles.tipsContainer}>
-                <Text style={styles.tipsTitle}>Disposal Tips:</Text>
-                {tips.tips && tips.tips.length > 0 ? (
-                  tips.tips.map((tip, index) => (
-                    <View key={index} style={styles.tipItem}>
-                      <Text style={styles.tipBullet}>•</Text>
-                      <Text style={styles.tipText}>{tip}</Text>
-                    </View>
-                  ))
-                ) : (
-                  <Text style={styles.noTipsText}>No specific tips available.</Text>
-                )}
+              {/* Technique Badge */}
+              <View style={styles.techniqueBadge}>
+                <Text style={styles.techniqueBadgeText}>
+                  {tips.technique.toUpperCase()}
+                </Text>
               </View>
+
+              {/* Tip Content */}
+              <View style={styles.tipsContainer}>
+                <Text style={styles.tipsTitle}>{tips.title || 'Disposal Tip'}</Text>
+                <Text style={styles.tipDescription}>
+                  {tips.description || 'No description available.'}
+                </Text>
+              </View>
+
+              {/* Workflow Steps */}
+              {tips.tip_workflow ? (
+                <View style={styles.workflowContainer}>
+                  <Text style={styles.workflowTitle}>Step-by-Step Guide</Text>
+                  <View style={styles.workflowSteps}>
+                    {tips.tip_workflow.split('\n').filter(step => step.trim()).map((step, index) => (
+                      <View key={index} style={styles.workflowStep}>
+                        <Text style={styles.workflowStepText}>{step.trim()}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
 
               {/* Feedback Section */}
               <View style={styles.feedbackSection}>
@@ -203,6 +217,20 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
   },
+  techniqueBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginBottom: 16,
+  },
+  techniqueBadgeText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#2E7D32',
+    letterSpacing: 1,
+  },
   tipsContainer: {
     marginBottom: 24,
   },
@@ -212,22 +240,37 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 12,
   },
-  tipItem: {
-    flexDirection: 'row',
-    marginBottom: 10,
-    paddingRight: 16,
-  },
-  tipBullet: {
-    fontSize: 16,
-    color: '#2E7D32',
-    marginRight: 8,
-    fontWeight: 'bold',
-  },
-  tipText: {
-    flex: 1,
+  tipDescription: {
     fontSize: 15,
     color: '#555',
-    lineHeight: 22,
+    lineHeight: 24,
+  },
+  workflowContainer: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  workflowTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#2E7D32',
+    marginBottom: 12,
+  },
+  workflowSteps: {
+    gap: 8,
+  },
+  workflowStep: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#4CAF50',
+  },
+  workflowStepText: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 20,
   },
   noTipsText: {
     fontSize: 15,

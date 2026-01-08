@@ -7,7 +7,10 @@ export interface TipsRequest {
 
 export interface TipsResponse {
   tip_id: string;
-  tips: string[];
+  technique: string;
+  title: string;
+  description: string;
+  tip_workflow: string;
   message?: string;
 }
 

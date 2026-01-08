@@ -5,12 +5,17 @@ from PIL import Image
 from typing import Tuple, Optional
 from pathlib import Path
 from core.constants import WasteType, FitStatus
+from core.config import get_settings
 import logging
 import os
 import requests
 import warnings
 import pandas as pd
 import joblib
+from groq import Groq
+import numpy as np
+import tensorflow as tf
+from typing import Tuple
 
 # Suppress all warnings before importing TensorFlow
 warnings.filterwarnings('ignore')
@@ -49,7 +54,7 @@ class WasteClassifier:
             logger.info("CNN model loaded successfully")
 
             # Load text model with separate error handling
-            text_model_path = model_dir / "model_text.keras"
+            text_model_path = model_dir / "model_functional_text.keras"
             text_model_path_str = str(text_model_path.resolve())
             print(f"Loading text model from: {text_model_path_str}")
             self.text_model = load_model(text_model_path_str)
@@ -105,6 +110,15 @@ class WasteClassifier:
             self.esp32_url = f"http://{self.esp32_ip}/distance"
             self.esp32_timeout = int(os.getenv("ESP32_TIMEOUT", "5"))
             
+            # Initialize Groq LLM
+            settings = get_settings()
+            if settings.llm_key:
+                self.llm = Groq(api_key=settings.llm_key)
+                print("Groq LLM initialized successfully")
+            else:
+                self.llm = None
+                print("Warning: LLM key not configured")
+            
             try:
                 input_shape = self.model.input_shape
                 self.input_size = (input_shape[1], input_shape[2]) if input_shape else (224, 224)
@@ -112,16 +126,25 @@ class WasteClassifier:
                 self.input_size = (224, 224)  
                 
         except Exception as e:
+            import traceback
             print(f"❌ Error loading model: {str(e)}")
+            print(f"Full traceback:\n{traceback.format_exc()}")
             logger.error(f"Error loading model: {str(e)}")
-            self.model = None
-            self.model_loaded = False
-            self.text_model = None
-            self.text_model_loaded = False
-            self.text_embedder = None
-            self.text_embedder_loaded = False
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            
+            # Only reset flags if they weren't already set to True
+            if not getattr(self, 'model_loaded', False):
+                self.model = None
+                self.model_loaded = False
+            if not getattr(self, 'text_model_loaded', False):
+                self.text_model = None
+                self.text_model_loaded = False
+            if not getattr(self, 'text_embedder_loaded', False):
+                self.text_embedder = None
+                self.text_embedder_loaded = False
+            
             self.class_mapping = {}
-            self.input_size = (224, 224)
+            self.input_size = getattr(self, 'input_size', (224, 224))
             # ESP32 configuration (still set even if models fail)
             self.esp32_ip = os.getenv("ESP32_IP", "192.168.43.168")
             self.esp32_url = f"http://{self.esp32_ip}/distance"
@@ -183,50 +206,113 @@ class WasteClassifier:
             # Return default classification on error
             return WasteType.OTHER, 0.5
     
-    async def classify_from_text(self, description: str) -> Tuple[WasteType, float]:
+    # async def classify_from_text(self, description: str) -> Tuple[WasteType, float]:
             
+    #     if not self.text_model_loaded or self.text_model is None:
+    #         logger.warning("Text model not loaded, falling back to default classification")
+    #         return WasteType.OTHER, 0.5
+        
+    #     if not self.text_embedder_loaded or self.text_embedder is None:
+    #         logger.warning("Text embedder not loaded, falling back to default classification")
+    #         return WasteType.OTHER, 0.5
+        
+    #     try:
+    #         # processed_text = self._preprocess_text(description)
+           
+    #         embedding = self.text_embedder([description]).numpy()
+            
+    #         print(f"Embedding shape: {embedding.shape}")
+    #         # Get prediction from model
+    #         predictions = self.text_model.predict(embedding, verbose=0)
+            
+    #         # Log all class probabilities
+    #         logger.info("All class probabilities (text):")
+    #         for idx in range(len(predictions[0])):
+    #             prob = float(predictions[0][idx])
+    #             waste_type = self.text_class_mapping.get(idx, None)
+    #             waste_type_str = waste_type.value if waste_type else "UNKNOWN"
+    #             logger.info(f"  Class {idx:2d} ({waste_type_str:15s}): {prob:.6f} ({prob*100:.2f}%)")
+            
+    #         # Get predicted class
+    #         predicted_class_idx = np.argmax(predictions[0])
+    #         confidence = float(predictions[0][predicted_class_idx])
+    #         waste_type = self.text_class_mapping.get(predicted_class_idx, WasteType.OTHER)
+            
+    #         logger.info(f"Predicted class index: {predicted_class_idx}, Waste type: {waste_type}, Confidence: {confidence:.2f}")
+            
+    #         return waste_type, confidence
+                
+    #     except Exception as e:
+    #         logger.error(f"Error processing text with model: {str(e)}")
+    #         return WasteType.OTHER, 0.5
+
+
+    async def classify_from_text(self, description: str) -> Tuple[WasteType, float]:
+
         if not self.text_model_loaded or self.text_model is None:
             logger.warning("Text model not loaded, falling back to default classification")
             return WasteType.OTHER, 0.5
-        
+
         if not self.text_embedder_loaded or self.text_embedder is None:
             logger.warning("Text embedder not loaded, falling back to default classification")
             return WasteType.OTHER, 0.5
-        
+
         try:
-            # processed_text = self._preprocess_text(description)
-           
             embedding = self.text_embedder([description]).numpy()
-            
-            print(f"Embedding shape: {embedding.shape}")
-            # Get prediction from model
-            predictions = self.text_model.predict(embedding, verbose=0)
-            
-            # Log all class probabilities
+            logger.info(f"Embedding shape: {embedding.shape}")
+
+           
+            logits = self.text_model.predict(embedding, verbose=0)  
+
+            T = getattr(self, "text_temperature", 2.0)  
+            probs = tf.nn.softmax(logits / T, axis=1).numpy()       
+
             logger.info("All class probabilities (text):")
-            for idx in range(len(predictions[0])):
-                prob = float(predictions[0][idx])
+            for idx in range(probs.shape[1]):
+                prob = float(probs[0][idx])
                 waste_type = self.text_class_mapping.get(idx, None)
                 waste_type_str = waste_type.value if waste_type else "UNKNOWN"
                 logger.info(f"  Class {idx:2d} ({waste_type_str:15s}): {prob:.6f} ({prob*100:.2f}%)")
-            
-            # Get predicted class
-            predicted_class_idx = np.argmax(predictions[0])
-            confidence = float(predictions[0][predicted_class_idx])
+
+            p = probs[0]
+            top1_idx = int(np.argmax(p))
+            top1_prob = float(p[top1_idx])
+
+            top2_prob = float(np.partition(p, -2)[-2])
+            margin = top1_prob - top2_prob
+
+            conf_thresh = getattr(self, "text_conf_thresh", 0.60)
+            margin_thresh = getattr(self, "text_margin_thresh", 0.15)
+
+            reject = (top1_prob < conf_thresh) or (margin < margin_thresh)
+
+            unknown_idx = getattr(self, "text_unknown_class_idx", None)
+
+            if reject and unknown_idx is not None:
+                predicted_class_idx = int(unknown_idx)
+                confidence = top1_prob  
+            else:
+                predicted_class_idx = top1_idx
+                confidence = top1_prob
+
             waste_type = self.text_class_mapping.get(predicted_class_idx, WasteType.OTHER)
-            
-            logger.info(f"Predicted class index: {predicted_class_idx}, Waste type: {waste_type}, Confidence: {confidence:.2f}")
-            
+
+            logger.info(
+                f"Predicted idx: {predicted_class_idx}, Waste type: {waste_type}, "
+                f"conf={confidence:.3f}, margin={margin:.3f}, reject={reject}"
+            )
+
             return waste_type, confidence
-                
+
         except Exception as e:
             logger.error(f"Error processing text with model: {str(e)}")
             return WasteType.OTHER, 0.5
 
+
     async def volume_from_distance(self, distance: float) -> float:
 
-        width = 20
-        length = 20
+        width = 74
+        length = 85
 
         return distance * width * length
 
@@ -266,8 +352,11 @@ class WasteClassifier:
             return FitStatus.PARTIAL_FIT
         else:
             return FitStatus.DOES_NOT_FIT
-    async def generate_tips(self, waste_type: WasteType, user_id: Optional[str] = None) -> list:
-       
+    async def generate_tips(self, waste_type: WasteType, user_id: Optional[str] = None) -> Tuple[Optional[dict], str]:
+        """
+        Generate personalized tip based on waste type and user profile.
+        Returns tuple of (tip_data, technique)
+        """
         # Get user profile if user_id is provided
         user_profile = None
         if user_id:
@@ -294,17 +383,17 @@ class WasteClassifier:
         
         technique = self.get_technique(waste_type, profile_data)
         
-        tips = self._generate_tips_from_technique(waste_type, technique, profile_data)
+        tip_data = await self._get_random_tip_from_db(waste_type, technique)
+
+        tip_workflow = self.get_tip_from_llm(waste_type, technique, tip_data)
         
-        return tips
+        return tip_data, technique, tip_workflow
 
     def get_technique(self, waste_type: WasteType, profile_data: dict) -> str:
         try:
-            # Parse household_size - keep as int since training data had it as int
             household_size_str = str(profile_data['household_size']).replace('+', '')
             household_size = int(household_size_str) if household_size_str.isdigit() else 3
             
-            # Build input DataFrame - use plain Python types, not pd.Categorical
             input_data = pd.DataFrame({
                 'waste_type': [str(waste_type.value)],
                 'living_type': [str(profile_data['residence_type']).lower()],
@@ -320,7 +409,6 @@ class WasteClassifier:
             
             X_raw = input_data[self.categorical_columns]
             
-            # Convert to numpy array of objects to avoid dtype issues with sklearn
             X_raw_values = X_raw.astype(str).values
 
             X_encoded = self.encoder.transform(X_raw_values)
@@ -341,40 +429,69 @@ class WasteClassifier:
             return "recycle"
 
 
-    def _generate_tips_from_technique(self, waste_type: WasteType, technique: str, profile_data: dict) -> list:
-        """Generate tips based on predicted technique and user profile."""
-        tips = []
-        
-        # Tips based on technique
-        if technique == "recycle":
-            tips.append("Clean and dry the item before recycling")
-            tips.append("Remove any non-recyclable parts (caps, labels)")
-            if not profile_data.get("has_recycling_bin"):
-                tips.append("Consider getting a recycling bin for easier sorting")
-        
-        elif technique == "reuse":
-            tips.append("Consider repurposing this item for another use")
-            tips.append("Check if local organizations accept donations")
-            tips.append("Get creative - many items can have a second life")
-        
-        elif technique == "upcycle":
-            tips.append("Transform this item into something of higher value")
-            tips.append("Search online for DIY upcycling ideas")
-            tips.append("Consider selling upcycled items at local markets")
-        
-        elif technique == "compost":
-            tips.append("Break down large pieces for faster composting")
-            if profile_data.get("has_compost_bin"):
-                tips.append("Add to your compost bin - great for garden nutrients!")
-            else:
-                tips.append("Consider starting a compost bin to reduce waste")
-        
-        else:
-            tips.append("Dispose in the appropriate bin")
-            tips.append("Check local guidelines for proper disposal")
-        
-        # Add personalized tips based on profile
-        if profile_data.get("has_weekly_collection"):
-            tips.append("Put out for your weekly collection")
-        
-        return tips
+    async def _get_random_tip_from_db(self, waste_type: WasteType, technique: str) -> Optional[dict]:
+        """
+        Fetch a random tip from database based on waste type and technique.
+        Returns tip data with tip_id, title, and description.
+        """
+        try:
+            from core.database import get_database
+            db = get_database()
+            tips_collection = db["tips"]
+            
+            # Query for matching tip with random selection using aggregation
+            pipeline = [
+                {"$match": {"waste_type": waste_type.value, "technique": technique}},
+                {"$sample": {"size": 1}}
+            ]
+            
+            cursor = tips_collection.aggregate(pipeline)
+            tip_docs = await cursor.to_list(length=1)
+            
+            if tip_docs:
+                tip_doc = tip_docs[0]
+                logger.info(f"Found tip: {tip_doc['_id']} for waste_type={waste_type.value}, technique={technique}")
+                return {
+                    "tip_id": tip_doc["_id"],
+                    "title": tip_doc.get("title", ""),
+                    "description": tip_doc.get("description", "")
+                }
+            
+            logger.warning(f"No tip found for waste_type={waste_type.value}, technique={technique}")
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error fetching tip from database: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return None
+
+    def get_tip_from_llm(self, waste_type: WasteType, technique: str, tip_data: dict) -> Optional[str]:
+        if not self.llm:
+            logger.warning("LLM not configured, skipping workflow generation")
+            return None
+        try:
+            prompt = (
+                f"Generate brief workflow steps for disposing {waste_type.value} waste using {technique} technique.\n"
+                f"Tip: {tip_data['title']} - {tip_data['description']}\n\n"
+                f"Rules:\n"
+                f"- Give only the steps to the user for the specific description of the tip.\n"
+                f"- Output ONLY numbered steps (1. 2. 3. etc)\n"
+                f"- Keep each step brief (sentences or brief paragraphs)\n"
+                f"- Maximum 5 steps\n"
+                f"- No introductions, headers, or extra text\n"
+                f"- Start directly with step 1"
+            )
+            response = self.llm.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                messages=[
+                    {"role": "system", "content": "You are a waste management expert. Give only brief numbered steps, nothing else."},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            logger.error(f"Error generating tip from LLM: {str(e)}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return None

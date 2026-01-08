@@ -11,7 +11,7 @@ class WasteType(str, Enum):
     OTHER = "other"
     BATTERIES = "batteries"
     CLOTHES = "clothes"
-    E_WASTE = "e_waste"
+    E_WASTE = "e-waste"
     LIGHT_BULBS = "light_bulbs"
     UNKNOWN = "unknown"
     PHARMACEUTICAL = "pharmaceutical"

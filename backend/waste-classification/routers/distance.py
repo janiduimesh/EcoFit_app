@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 # Get ESP32 IP from environment variable or use default
 ESP32_IP = os.getenv("ESP32_IP", "192.168.43.168")
 ESP32_URL = f"http://{ESP32_IP}/distance"
-REQUEST_TIMEOUT = int(os.getenv("ESP32_TIMEOUT", "5"))  # Default 5 seconds
+REQUEST_TIMEOUT = int(os.getenv("ESP32_TIMEOUT", "5"))  
 
 @router.post("/check-distance", response_model=DistanceResponse)
 async def check_distance(request: DistanceRequest):

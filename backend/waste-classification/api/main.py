@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import dispose, health, distance, User_routes
 from core.database import connect_to_mongo, close_mongo_connection
+from jobs.schedular import setup_schedular
 
 app = FastAPI(
     title="EcoFit Waste Classification API",
@@ -21,9 +22,12 @@ app.add_middleware(
 async def startup_db_client():
     import logging
     logger = logging.getLogger(__name__)
-    logger.info("Starting database connection...")
     print("🔄 Starting database connection...")
     await connect_to_mongo()
+    
+    # Start the scheduler
+    print("🔄 Starting scheduler...")
+    await setup_schedular()
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     mongodb_url: str
     mongodb_db_name: str
     
+    llm_key: Optional[str] = None
+    
     class Config:
         env_file = str(ROOT_DIR / ".env")  # Points to root .env file
         env_file_encoding = 'utf-8'

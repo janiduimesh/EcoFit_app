@@ -41,8 +41,11 @@ class TipsRequest(BaseModel):
     waste_type: str = Field(..., description="Classified waste type")
 
 class TipsResponse(BaseModel):
-    tip_id: str = Field(..., description="Unique tip ID (e.g., TIP_0001)")
-    tips: List[str] = Field(default_factory=list, description="List of disposal tips")
+    tip_id: str = Field(..., description="Tip ID from database (e.g., TIP_0122)")
+    technique: str = Field(..., description="Predicted disposal technique")
+    title: str = Field("", description="Tip title")
+    description: str = Field("", description="Tip description")
+    tip_workflow: str = Field("", description="Tip workflow")
     message: Optional[str] = None
 
 class TipsFeedbackRequest(BaseModel):
