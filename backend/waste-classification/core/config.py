@@ -10,21 +10,25 @@ class Settings(BaseSettings):
     debug: bool = False
     api_host: str = "0.0.0.0"
     api_port: int = 8000
+
+    GROQ_API_KEY: str
+    RAG_DIR: str = "rag_data/"  
     
     # Model settings
     model_path: Optional[str] = None
     confidence_threshold: float = 0.5
-    
+
     mongodb_url: str
     mongodb_db_name: str
     
     llm_key: Optional[str] = None
     
     class Config:
-        env_file = str(ROOT_DIR / ".env")  # Points to root .env file
+        env_file = ".env"
         env_file_encoding = 'utf-8'
         protected_namespaces = ('settings_',)  
-    
+
+settings = Settings()
 
 def get_settings():
     return Settings()

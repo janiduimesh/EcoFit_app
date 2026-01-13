@@ -10,6 +10,7 @@ import WasteCheck from './app/screens/WasteCheck';
 import Result from './app/screens/Result';
 import Login from './app/screens/login';
 import Register from './app/screens/Register';
+import AIAgent from './app/screens/AIAgent';
 
 type RootStackParamList = {
   Logo: undefined;
@@ -18,6 +19,7 @@ type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   WasteCheck: undefined;
+  AIAgent: undefined;
   Result: { data: any };
 };
 
@@ -28,22 +30,22 @@ export default function App() {
     <NavigationContainer>
       <StatusBar style="auto" />
       <Stack.Navigator
-        initialRouteName="Logo"
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: '#4CAF50',
-          },
-          headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
-        }}
+        initialRouteName="Login"
+        // screenOptions={{
+        //   headerStyle: {
+        //     backgroundColor: '#4CAF50',
+        //   },
+        //   headerTintColor: '#fff',
+        //   headerTitleStyle: {
+        //     fontWeight: 'bold',
+        //   },
+        // }}
       >
-        <Stack.Screen 
+        {/* <Stack.Screen 
           name="Logo" 
           component={Logo} 
           options={{ headerShown: false }}
-        />
+        /> */}
         <Stack.Screen 
           name="Login" 
           component={Login} 
@@ -68,6 +70,11 @@ export default function App() {
           name="WasteCheck" 
           component={WasteCheck} 
           options={{ title: 'Check Waste Type' }}
+        />
+        <Stack.Screen 
+          name="AIAgent" 
+          component={AIAgent} 
+          options={{ title: 'AI Agent' }}
         />
         <Stack.Screen 
           name="Result" 

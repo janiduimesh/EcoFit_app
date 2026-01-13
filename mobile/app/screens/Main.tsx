@@ -19,6 +19,7 @@ type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   WasteCheck: undefined;
+  AIAgent: undefined;
   Result: { data: any };
 };
 
@@ -80,8 +81,8 @@ export default function Main({ navigation }: Props) {
   };
 
   const handleAIAgent = () => {
-    // TODO: Implement AI Agent
-    console.log('AI Agent pressed');
+    //console.log('AI Agent pressed');
+    navigation.navigate('AIAgent');
   };
 
   const handleComplaints = () => {

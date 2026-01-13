@@ -71,6 +71,7 @@ async def register_user(user_data: UserRegisterRequest) -> UserRegisterResponse:
         "email": email_lower, 
         "hashed_password": hashed_password,
         "address": user_data.address,
+        "area": user_data.area,
         "created_at": datetime.utcnow()
     }
     
@@ -146,6 +147,18 @@ async def login_user(user_data: UserLoginRequest) -> UserLoginResponse:
         user_id=user_id,
         token=None  # Can be implemented later with JWT
     )
+
+async def get_user_area(user_id: str) -> str | None:
+    db = get_database()
+    users = db["users"]
+
+    user = await users.find_one(
+        {"_id": ObjectId(user_id)},
+        {"area": 1}
+    )
+
+    return user.get("area") if user else None
+
 
 async def update_user_profile(user_id: str, profile_data: UserProfileUpdateRequest) -> UserProfileUpdateResponse:
     """Update user profile information."""

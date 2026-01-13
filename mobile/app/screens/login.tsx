@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { loginUser } from '../api/user';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type RootStackParamList = {
   Logo: undefined;
@@ -58,6 +59,10 @@ export default function Login({ navigation }: Props) {
       });
 
       console.log('Login successful:', response);
+
+      if (response.user_id) {
+        await AsyncStorage.setItem('user_id', response.user_id);
+      }
       
       Alert.alert('Success', response.message || 'Login successful!', [
         { 
@@ -312,4 +317,3 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-

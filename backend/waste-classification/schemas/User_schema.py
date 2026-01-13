@@ -6,6 +6,7 @@ class UserRegisterRequest(BaseModel):
     email: EmailStr = Field(..., description="User's email address")
     password: str = Field(..., min_length=6, max_length=72, description="User's password (6-72 characters, bcrypt limit)")
     address: Optional[str] = Field(None, description="User's full address")
+    area: str = Field(..., description="User's area for waste collection")
 
 class UserRegisterResponse(BaseModel):
     message: str
@@ -33,4 +34,3 @@ class UserProfileUpdateRequest(BaseModel):
 class UserProfileUpdateResponse(BaseModel):
     message: str
     success: bool
-

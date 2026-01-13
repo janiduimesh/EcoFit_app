@@ -33,16 +33,16 @@ export default function Home({ navigation }: Props) {
       return;
     }
 
-    setLoading(true);
-    try {
-      const result = await dispose(inputData);
-      navigation.navigate('Result', { data: result });
-    } catch (error) {
-      Alert.alert('Error', 'Failed to process data');
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
-    }
+    // setLoading(true);
+    // try {
+    //   const result = await dispose(inputData);
+    //   navigation.navigate('Result', { data: result });
+    // } catch (error) {
+    //   Alert.alert('Error', 'Failed to process data');
+    //   console.error('Error:', error);
+    // } finally {
+    //   setLoading(false);
+    // }
   };
 
   return (
