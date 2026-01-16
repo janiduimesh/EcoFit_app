@@ -1,10 +1,10 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
 from pathlib import Path
-import os
 
-# Get the root directory and load .env
+# Get the root directory (.env is in project root)
 ROOT_DIR = Path(__file__).parent.parent.parent.parent
+
 class Settings(BaseSettings):
     app_name: str = "EcoFit Waste Classification API"
     debug: bool = False
@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     llm_key: Optional[str] = None
     
     class Config:
-        env_file = ".env"
+        env_file = str(ROOT_DIR / ".env")  # Points to root .env file
         env_file_encoding = 'utf-8'
         protected_namespaces = ('settings_',)  
 
