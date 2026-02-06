@@ -1,24 +1,32 @@
-// Get API URL from environment variables or use default
-// Completely avoid expo-constants during initial load to prevent TurboModuleRegistry errors
-export const API_URL = process.env.API_URL || 'http://localhost:3000/api';
+import axios from 'axios';
 
-// Function to get the API URL from expo config when available
+export const API_URL = 'http://192.168.8.108:8000/api/v2';
+
 export const getApiUrl = () => {
-  // For now, just return the default API URL to avoid expo-constants issues
-  // This can be enhanced later when the app is stable
   return API_URL;
 };
 
-// App configuration
+
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+  timeout: 10000,
+});
+
+export default api;
+
+
 export const APP_CONFIG = {
   name: 'EcoFit',
   version: '1.0.0',
-  apiUrl: getApiUrl(),
-  timeout: 10000, // 10 seconds
+  apiUrl: API_URL,
+  timeout: 10000,
   retryAttempts: 3,
 };
 
-// API endpoints
 export const API_ENDPOINTS = {
   dispose: '/dispose',
   health: '/health',
@@ -27,14 +35,12 @@ export const API_ENDPOINTS = {
   eco: '/eco',
 };
 
-// Environment configuration
 export const ENV = {
   isDevelopment: __DEV__,
   isProduction: !__DEV__,
   nodeEnv: process.env.NODE_ENV || 'development',
 };
 
-// App colors
 export const COLORS = {
   primary: '#4CAF50',
   secondary: '#2E7D32',
@@ -49,7 +55,6 @@ export const COLORS = {
   info: '#2196F3',
 };
 
-// App dimensions
 export const DIMENSIONS = {
   padding: 20,
   margin: 15,
@@ -58,21 +63,10 @@ export const DIMENSIONS = {
   inputHeight: 45,
 };
 
-// Font sizes
 export const FONT_SIZES = {
   small: 12,
   medium: 16,
   large: 20,
   xlarge: 24,
   xxlarge: 28,
-};
-
-// API configuration
-export const API_CONFIG = {
-  baseURL: getApiUrl(),
-  timeout: APP_CONFIG.timeout,
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  },
 };

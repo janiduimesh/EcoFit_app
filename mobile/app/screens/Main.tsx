@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,14 +7,22 @@ import {
   SafeAreaView,
   Dimensions,
   Image,
+  Alert,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import OnboardingModal from '../components/OnboardingModal';
+import BinOverflowModal from '../components/BinOverflowModal';
+import api from '../utils/config';
 
 type RootStackParamList = {
   Logo: undefined;
   Main: undefined;
   Home: undefined;
+  Login: undefined;
+  Register: undefined;
   WasteCheck: undefined;
+  Dashboard: { email: string };
+  CreateHousehold: { email: string };
   Result: { data: any };
 };
 
@@ -25,26 +33,86 @@ type Props = {
 };
 
 const { width } = Dimensions.get('window');
-const buttonWidth = (width - 60) / 2; // 2 buttons per row with padding
+const buttonWidth = (width - 60) / 2;
 
 export default function Main({ navigation }: Props) {
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showBinOverflow, setShowBinOverflow] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    checkOnboardingStatus();
+  }, []);
+
+  const checkOnboardingStatus = async () => {
+    try {
+      let AsyncStorage;
+      try {
+        AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      } catch (e) {
+        console.warn('AsyncStorage not available. Please install: npm install @react-native-async-storage/async-storage');
+        return;
+      }
+
+      const onboardingCompleted = await AsyncStorage.getItem('onboarding_completed');
+      const storedUserId = await AsyncStorage.getItem('user_id');
+
+      if (onboardingCompleted !== 'true') {
+        setShowOnboarding(true);
+        if (storedUserId) {
+          setUserId(storedUserId);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking onboarding status:', error);
+    }
+  };
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+  };
+
   const handleCheckWasteType = () => {
     navigation.navigate('WasteCheck');
   };
 
-  const handleCalculateTax = () => {
-    // TODO: Implement tax calculation
-    console.log('Calculate Tax pressed');
-  };
+
+  const handleCalculateTax = async () => {
+  try {
+    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+    let email = await AsyncStorage.getItem('user_email');
+
+    if (!email) {
+      Alert.alert("Error", "No email found. Please log in again.");
+      return;
+    }
+
+    // FORCE LOWERCASE AND REMOVE SPACES
+    const sanitizedEmail = email.trim().toLowerCase();
+    console.log("Checking household for:", sanitizedEmail);
+
+    const response = await api.get(`/household/check_by_email/${sanitizedEmail}`);
+
+    if (response.data.exists) {
+      navigation.navigate('Dashboard', { email: sanitizedEmail });
+    } else {
+      navigation.navigate('CreateHousehold', { email: sanitizedEmail });
+    }
+  } catch (error) {
+    console.error('Household check failed:', error);
+  }
+};
 
   const handleAIAgent = () => {
-    // TODO: Implement AI Agent
     console.log('AI Agent pressed');
   };
 
   const handleComplaints = () => {
-    // TODO: Implement complaints
     console.log('Complaints pressed');
+  };
+
+  const handleBinOverflow = () => {
+    setShowBinOverflow(true);
   };
 
   return (
@@ -86,7 +154,26 @@ export default function Main({ navigation }: Props) {
         >
           <Text style={styles.buttonText}>Any Complains?</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.button, styles.overflowButton, { width: buttonWidth }]}
+          onPress={handleBinOverflow}
+        >
+          <Text style={styles.overflowIcon}>📊</Text>
+          <Text style={styles.buttonText}>Bin Overflow Forecast</Text>
+        </TouchableOpacity>
       </View>
+
+      <OnboardingModal
+        visible={showOnboarding}
+        onComplete={handleOnboardingComplete}
+        userId={userId || undefined}
+      />
+
+      <BinOverflowModal
+        visible={showBinOverflow}
+        onClose={() => setShowBinOverflow(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -94,7 +181,7 @@ export default function Main({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E8F5E8', // Light green background
+    backgroundColor: '#E8F5E8',
   },
   header: {
     paddingTop: 20,
@@ -108,7 +195,7 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 50,
     height: 50,
-    backgroundColor: '#2E7D32', // Dark green
+    backgroundColor: '#2E7D32',
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
@@ -120,7 +207,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#2E7D32', // Dark green
+    color: '#2E7D32',
     letterSpacing: 1,
   },
   buttonGrid: {
@@ -132,7 +219,7 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   button: {
-    backgroundColor: '#F1F8E9', // Light yellow-green
+    backgroundColor: '#F1F8E9',
     paddingVertical: 20,
     paddingHorizontal: 15,
     borderRadius: 12,
@@ -151,8 +238,18 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#2E7D32', // Dark green
+    color: '#2E7D32',
     textAlign: 'center',
     lineHeight: 22,
+  },
+  overflowButton: {
+    backgroundColor: '#E8F5E9',
+    borderWidth: 2,
+    borderColor: '#2E7D32',
+    borderStyle: 'dashed',
+  },
+  overflowIcon: {
+    fontSize: 28,
+    marginBottom: 8,
   },
 });
