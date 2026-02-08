@@ -28,10 +28,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Configuration
-MODEL_DIR = Path(__file__).parent.parent / "model"
+MODEL_DIR = Path(__file__).parent.parent / "model" / "overflow"
 MODEL_PREFIX = "lag_model_random"
-MIN_SAMPLES_FOR_TRAINING = 14  
-DATA_LOOKBACK_DAYS = 60  
+MIN_SAMPLES_FOR_TRAINING = 14
+DATA_LOOKBACK_DAYS = 60
 
 
 async def get_settings():
@@ -40,24 +40,20 @@ async def get_settings():
     return _get_settings()
 
 
-async def fetch_training_data(settings) -> list:
-    """Fetch bin volume data from MongoDB"""
+async def fetch_training_data(settings, bin_id: str) -> list:
+    """Fetch bin volume data from MongoDB for the given bin_id (uses collection bin_volumes_{bin_id})."""
+    from core.constants import overflow_collection
     logger.info("[Data] Connecting to MongoDB...")
-    
     client = AsyncIOMotorClient(settings.mongodb_url)
     db = client[settings.mongodb_db_name]
-    
-    # Get data from last N days
+    coll_name = overflow_collection(bin_id)
     cutoff_date = datetime.utcnow() - timedelta(days=DATA_LOOKBACK_DAYS)
-    
-    cursor = db.bin_volumes.find(
+    cursor = db[coll_name].find(
         {"recorded_at": {"$gte": cutoff_date}}
     ).sort("recorded_at", 1)
-    
     data = await cursor.to_list(length=None)
     client.close()
-    
-    logger.info(f"Fetched {len(data)} records from last {DATA_LOOKBACK_DAYS} days")
+    logger.info(f"Fetched {len(data)} records for {bin_id} from last {DATA_LOOKBACK_DAYS} days")
     return data
 
 
@@ -192,10 +188,9 @@ def train_model(df: pd.DataFrame):
     }
 
 
-def save_model(model, feature_cols: list, metrics: dict, samples_used: int):
-    """Save trained model and metadata as single timestamped file; remove older ones."""
+def save_model(model, feature_cols: list, metrics: dict, samples_used: int, bin_id: str):
+    """Save trained model and metadata for the given bin_id; remove older models for that bin only."""
     MODEL_DIR.mkdir(exist_ok=True)
-    
     model_data = {
         'model': model,
         'feature_cols': feature_cols,
@@ -204,14 +199,11 @@ def save_model(model, feature_cols: list, metrics: dict, samples_used: int):
         'metrics': metrics,
         'version': '1.0.0'
     }
-    
     timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
-    path = MODEL_DIR / f"{MODEL_PREFIX}_{timestamp}.pkl"
+    path = MODEL_DIR / f"{MODEL_PREFIX}_{bin_id}_{timestamp}.pkl"
     joblib.dump(model_data, path)
     logger.info(f"[Save] Model saved to {path}")
-    
-    # Remove older timestamped models so only the latest is used for predictions
-    for old in MODEL_DIR.glob(f"{MODEL_PREFIX}_*.pkl"):
+    for old in MODEL_DIR.glob(f"{MODEL_PREFIX}_{bin_id}_*.pkl"):
         if old != path:
             try:
                 old.unlink()
@@ -220,56 +212,45 @@ def save_model(model, feature_cols: list, metrics: dict, samples_used: int):
                 logger.warning(f"[Save] Could not remove {old}: {e}")
 
 
+async def train_one_bin(settings, bin_id: str) -> bool:
+    """Train and save model for one bin. Returns True if successful."""
+    data = await fetch_training_data(settings, bin_id)
+    if len(data) < MIN_SAMPLES_FOR_TRAINING:
+        logger.warning(
+            f"[Warning] Not enough data for {bin_id}. Need {MIN_SAMPLES_FOR_TRAINING}, got {len(data)}. Skipping."
+        )
+        return False
+    df = prepare_features(data)
+    if len(df) < MIN_SAMPLES_FOR_TRAINING:
+        logger.warning(
+            f"[Warning] Not enough samples after feature engineering for {bin_id}. Skipping."
+        )
+        return False
+    model, feature_cols, metrics = train_model(df)
+    save_model(model, feature_cols, metrics, len(df), bin_id)
+    return True
+
+
 async def main():
-    """Main retraining pipeline"""
+    """Main retraining pipeline: train one model per bin (5 bins)."""
+    from core.constants import OVERFLOW_BIN_IDS
     start_time = datetime.utcnow()
-    
     logger.info("=" * 60)
-    logger.info("[Start] Starting Bin Overflow Prediction Model Retraining")
+    logger.info("[Start] Starting Bin Overflow Prediction Model Retraining (all bins)")
+    logger.info(f"   Bins: {OVERFLOW_BIN_IDS}")
     logger.info(f"   Time: {start_time.isoformat()}")
     logger.info("=" * 60)
-    
     try:
-        # 1. Load settings
         settings = await get_settings()
-        
-        # 2. Fetch data
-        data = await fetch_training_data(settings)
-        
-        if len(data) < MIN_SAMPLES_FOR_TRAINING:
-            logger.warning(
-                f"[Warning] Not enough data for training. "
-                f"Need {MIN_SAMPLES_FOR_TRAINING}, got {len(data)}. "
-                f"Skipping retraining."
-            )
-            return
-        
-        # 3. Prepare features
-        df = prepare_features(data)
-        
-        if len(df) < MIN_SAMPLES_FOR_TRAINING:
-            logger.warning(
-                f"[Warning] Not enough samples after feature engineering. "
-                f"Need {MIN_SAMPLES_FOR_TRAINING}, got {len(df)}. "
-                f"Skipping retraining."
-            )
-            return
-        
-        # 4. Train model
-        model, feature_cols, metrics = train_model(df)
-        
-        # 5. Save model
-        save_model(model, feature_cols, metrics, len(df))
-        
-        # 6. Log completion
+        trained = 0
+        for bin_id in OVERFLOW_BIN_IDS:
+            logger.info(f"--- Training bin_id={bin_id} ---")
+            if await train_one_bin(settings, bin_id):
+                trained += 1
         duration = (datetime.utcnow() - start_time).total_seconds()
         logger.info("=" * 60)
-        logger.info("[OK] Retraining completed successfully!")
-        logger.info(f"   Duration: {duration:.1f} seconds")
-        logger.info(f"   Samples used: {len(df)}")
-        logger.info(f"   Model MAE: {metrics['mae']:.2f}")
+        logger.info(f"[OK] Retraining completed. Trained {trained}/{len(OVERFLOW_BIN_IDS)} bins in {duration:.1f}s")
         logger.info("=" * 60)
-        
     except Exception as e:
         logger.error(f"[Error] Retraining failed: {str(e)}", exc_info=True)
         raise

@@ -16,6 +16,7 @@ import {
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
 import { getBinImage } from '../utils/binImages';
+import { getOverflowPredict, OverflowPredictionResponse } from '../api/overflow';
 
 type RootStackParamList = {
   Logo: undefined;
@@ -33,48 +34,12 @@ type Props = {
 
 const { width } = Dimensions.get('window');
 
-// Hardcoded bin overflow data - will be replaced with time series model predictions later
-const BIN_OVERFLOW_DATA = [
-  {
-    id: 'blue_bin',
-    name: 'Recycling Bin',
-    color: '#2196F3',
-    overflowDate: 'January 12, 2026',
-    daysUntil: 6,
-    prediction: 'Based on current disposal patterns',
-  },
-  {
-    id: 'yellow_bin',
-    name: 'General Waste',
-    color: '#FFC107',
-    overflowDate: 'January 9, 2026',
-    daysUntil: 3,
-    prediction: 'Higher than usual activity detected',
-  },
-  {
-    id: 'green_bin',
-    name: 'Organic Waste',
-    color: '#4CAF50',
-    overflowDate: 'January 14, 2026',
-    daysUntil: 8,
-    prediction: 'Normal disposal rate',
-  },
-  {
-    id: 'black_bin',
-    name: 'Hazardous Waste',
-    color: '#424242',
-    overflowDate: 'February 2, 2026',
-    daysUntil: 27,
-    prediction: 'Low activity - safe capacity',
-  },
-  {
-    id: 'red_bin',
-    name: 'Electronic Waste',
-    color: '#F44336',
-    overflowDate: 'January 28, 2026',
-    daysUntil: 22,
-    prediction: 'Moderate disposal rate',
-  },
+const BIN_LIST = [
+  { id: 'blue_bin', name: 'Recycling Bin' },
+  { id: 'yellow_bin', name: 'General Waste' },
+  { id: 'green_bin', name: 'Organic Waste' },
+  { id: 'black_bin', name: 'Hazardous Waste' },
+  { id: 'red_bin', name: 'Electronic Waste' },
 ];
 
 export default function WasteCheck({ navigation }: Props) {
@@ -85,6 +50,10 @@ export default function WasteCheck({ navigation }: Props) {
   const [inputMethod, setInputMethod] = useState<'image' | 'description' | 'overflow'>('image');
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [overflowModalBin, setOverflowModalBin] = useState<typeof BIN_LIST[0] | null>(null);
+  const [overflowModalDetails, setOverflowModalDetails] = useState<OverflowPredictionResponse | null>(null);
+  const [overflowModalLoading, setOverflowModalLoading] = useState(false);
+  const [overflowModalError, setOverflowModalError] = useState<string | null>(null);
 
   useEffect(() => {
     // Load user_id from AsyncStorage
@@ -202,6 +171,35 @@ export default function WasteCheck({ navigation }: Props) {
     if (days <= 3) return 'CRITICAL';
     if (days <= 7) return 'SOON';
     return 'SAFE';
+  };
+
+  const getRiskColor = (risk?: string) => {
+    if (!risk) return '#9E9E9E';
+    if (risk === 'high') return '#F44336';
+    if (risk === 'medium') return '#FF9800';
+    if (risk === 'low') return '#8BC34A';
+    return '#4CAF50';
+  };
+
+  const handleOverflowCheck = async (bin: typeof BIN_LIST[0]) => {
+    setOverflowModalBin(bin);
+    setOverflowModalDetails(null);
+    setOverflowModalError(null);
+    setOverflowModalLoading(true);
+    try {
+      const result = await getOverflowPredict(bin.id);
+      setOverflowModalDetails(result);
+    } catch (e) {
+      setOverflowModalError(e instanceof Error ? e.message : 'Failed to load prediction');
+    } finally {
+      setOverflowModalLoading(false);
+    }
+  };
+
+  const closeOverflowModal = () => {
+    setOverflowModalBin(null);
+    setOverflowModalDetails(null);
+    setOverflowModalError(null);
   };
 
   const handleSubmit = async () => {
@@ -418,15 +416,14 @@ export default function WasteCheck({ navigation }: Props) {
                 </Text>
               </View>
 
-              {/* Bin List */}
+              {/* Bin List - compact row + Check button */}
               <ScrollView 
                 style={styles.overflowScrollView}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.overflowScrollContent}
               >
-                {BIN_OVERFLOW_DATA.map((bin) => (
+                {BIN_LIST.map((bin) => (
                   <View key={bin.id} style={styles.overflowBinCard}>
-                    {/* Bin Image and Info */}
                     <View style={styles.overflowBinHeader}>
                       <View style={styles.overflowBinImageContainer}>
                         <Image
@@ -437,43 +434,97 @@ export default function WasteCheck({ navigation }: Props) {
                       </View>
                       <View style={styles.overflowBinInfo}>
                         <Text style={styles.overflowBinName}>{bin.name}</Text>
-                        <View style={[styles.overflowUrgencyBadge, { backgroundColor: getUrgencyColor(bin.daysUntil) }]}>
-                          <Text style={styles.overflowUrgencyText}>{getUrgencyLabel(bin.daysUntil)}</Text>
-                        </View>
                       </View>
-                    </View>
-
-                    {/* Overflow Date */}
-                    <View style={styles.overflowDateSection}>
-                      <View style={styles.overflowDateContainer}>
-                        <Text style={styles.overflowDateIcon}>📅</Text>
-                        <View>
-                          <Text style={styles.overflowDateLabel}>Predicted Overflow</Text>
-                          <Text style={styles.overflowDateText}>{bin.overflowDate}</Text>
-                        </View>
-                      </View>
-                      <View style={[styles.overflowDaysContainer, { backgroundColor: getUrgencyColor(bin.daysUntil) }]}>
-                        <Text style={styles.overflowDaysNumber}>{bin.daysUntil}</Text>
-                        <Text style={styles.overflowDaysLabel}>days</Text>
-                      </View>
-                    </View>
-
-                    {/* Prediction Note */}
-                    <View style={styles.overflowPredictionNote}>
-                      <Text style={styles.overflowPredictionIcon}>💡</Text>
-                      <Text style={styles.overflowPredictionText}>{bin.prediction}</Text>
+                      <TouchableOpacity
+                        style={styles.overflowCheckButton}
+                        onPress={() => handleOverflowCheck(bin)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.overflowCheckButtonText}>Check</Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
                 ))}
 
-                {/* Footer Note */}
                 <View style={styles.overflowFooterNote}>
                   <Text style={styles.overflowFooterIcon}>⚡</Text>
                   <Text style={styles.overflowFooterText}>
-                    Predictions update daily based on your disposal activity. Time series models analyze historical patterns to forecast overflow dates.
+                    Tap Check to see predicted overflow date and status. Predictions update daily based on your disposal activity.
                   </Text>
                 </View>
               </ScrollView>
+
+              {/* Overflow details modal */}
+              <Modal
+                visible={overflowModalBin !== null}
+                transparent
+                animationType="fade"
+                onRequestClose={closeOverflowModal}
+              >
+                <TouchableOpacity
+                  style={styles.overflowModalBackdrop}
+                  activeOpacity={1}
+                  onPress={closeOverflowModal}
+                >
+                  <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()} style={styles.overflowModalBox}>
+                    {overflowModalBin && (
+                      <>
+                        <View style={styles.overflowModalHeader}>
+                          <Text style={styles.overflowModalTitle}>{overflowModalBin.name}</Text>
+                          <TouchableOpacity onPress={closeOverflowModal} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                            <Text style={styles.overflowModalClose}>✕</Text>
+                          </TouchableOpacity>
+                        </View>
+                        {overflowModalLoading && (
+                          <View style={styles.overflowModalLoading}>
+                            <ActivityIndicator size="large" color="#2E7D32" />
+                            <Text style={styles.overflowModalLoadingText}>Loading prediction...</Text>
+                          </View>
+                        )}
+                        {overflowModalError && !overflowModalLoading && (
+                          <View style={styles.overflowModalContent}>
+                            <Text style={styles.overflowModalError}>{overflowModalError}</Text>
+                          </View>
+                        )}
+                        {overflowModalDetails && !overflowModalLoading && overflowModalDetails.success && (
+                          <View style={styles.overflowModalContent}>
+                            {overflowModalDetails.overflow_risk != null && (
+                              <View style={[styles.overflowModalBadge, { backgroundColor: getRiskColor(overflowModalDetails.overflow_risk) }]}>
+                                <Text style={styles.overflowUrgencyText}>{overflowModalDetails.overflow_risk.toUpperCase()}</Text>
+                              </View>
+                            )}
+                            {overflowModalDetails.overflow_date != null && (
+                              <View style={styles.overflowDateSection}>
+                                <View style={styles.overflowDateContainer}>
+                                  <Text style={styles.overflowDateIcon}>📅</Text>
+                                  <View>
+                                    <Text style={styles.overflowDateLabel}>Predicted overflow</Text>
+                                    <Text style={styles.overflowDateText}>{overflowModalDetails.overflow_date}</Text>
+                                  </View>
+                                </View>
+                              </View>
+                            )}
+                            {overflowModalDetails.predicted_distance_cm != null && (
+                              <Text style={styles.overflowModalDistance}>
+                                Distance: {overflowModalDetails.predicted_distance_cm} cm
+                              </Text>
+                            )}
+                            <View style={styles.overflowPredictionNote}>
+                              <Text style={styles.overflowPredictionIcon}>💡</Text>
+                              <Text style={styles.overflowPredictionText}>{overflowModalDetails.message}</Text>
+                            </View>
+                          </View>
+                        )}
+                        {overflowModalDetails && !overflowModalDetails.success && !overflowModalLoading && (
+                          <View style={styles.overflowModalContent}>
+                            <Text style={styles.overflowModalError}>{overflowModalDetails.message}</Text>
+                          </View>
+                        )}
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              </Modal>
             </View>
           )}
 
@@ -864,7 +915,76 @@ const styles = StyleSheet.create({
   overflowBinHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  overflowCheckButton: {
+    backgroundColor: '#2E7D32',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  overflowCheckButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  overflowModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  overflowModalBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    maxWidth: 340,
+  },
+  overflowModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
+  },
+  overflowModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#333',
+  },
+  overflowModalClose: {
+    fontSize: 22,
+    color: '#666',
+    padding: 4,
+  },
+  overflowModalLoading: {
+    paddingVertical: 24,
+    alignItems: 'center',
+  },
+  overflowModalLoadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#666',
+  },
+  overflowModalContent: {
+    paddingVertical: 4,
+  },
+  overflowModalBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  overflowModalError: {
+    fontSize: 14,
+    color: '#F44336',
+    marginVertical: 8,
+  },
+  overflowModalDistance: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 8,
   },
   overflowBinImageContainer: {
     width: 60,

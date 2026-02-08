@@ -24,6 +24,13 @@ class BinCategory(str, Enum):
     HAZARDOUS = "black_bin"
     ELECTRONIC = "red_bin"
 
+OVERFLOW_BIN_IDS = [b.value for b in BinCategory]
+
+
+def overflow_collection(bin_id: str) -> str:
+    """MongoDB collection name for a bin's volume/distance time series."""
+    return f"bin_volumes_{bin_id}"
+
 class FitStatus(str, Enum):
     FITS = "fits"
     DOES_NOT_FIT = "does_not_fit"

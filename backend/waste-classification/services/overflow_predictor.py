@@ -13,28 +13,29 @@ import joblib
 
 logger = logging.getLogger(__name__)
 
-MODEL_DIR = Path(__file__).parent.parent / "model"
+MODEL_DIR = Path(__file__).parent.parent / "model" / "overflow"
 MODEL_PREFIX = "lag_model_random"
-MIN_DISTANCE_CM = 5.0    # bin almost full
-MAX_DISTANCE_CM = 111.0  # bin empty
-OVERFLOW_DISTANCE_CM = 15.0
+MIN_DISTANCE_CM = 5.0
+MAX_DISTANCE_CM = 111.0
+OVERFLOW_DISTANCE_CM = 50.0
 
 
-
-def _get_latest_model_path() -> Optional[Path]:
-    """Return path to the latest timestamped model file, or None if none found."""
+def _get_latest_model_path(bin_id: str) -> Optional[Path]:
+    """Return path to the latest timestamped model file for the given bin_id, or None."""
     if not MODEL_DIR.exists():
         return None
-    candidates = list(MODEL_DIR.glob(f"{MODEL_PREFIX}_*.pkl"))
+    pattern = f"{MODEL_PREFIX}_{bin_id}_*.pkl"
+    candidates = list(MODEL_DIR.glob(pattern))
     if not candidates:
         return None
     return max(candidates, key=lambda p: p.stat().st_mtime)
 
 
 class BinOverflowPredictor:
-    """Predicts bin overflow based on historical data"""
-    
-    def __init__(self):
+    """Predicts bin overflow based on historical data for a single bin."""
+
+    def __init__(self, bin_id: str):
+        self.bin_id = bin_id
         self.model = None
         self.feature_cols = None
         self.model_metadata = None
@@ -51,11 +52,11 @@ class BinOverflowPredictor:
         ]
     
     def _load_model(self) -> bool:
-        """Load the trained model from disk. Expects a pickle of the model object (predicts distance_cm from distance_cm lags)."""
+        """Load the trained model from disk for this bin_id."""
         try:
-            model_path = _get_latest_model_path()
+            model_path = _get_latest_model_path(self.bin_id)
             if model_path is None or not model_path.exists():
-                logger.warning("No model file found in %s (%s_*.pkl)", MODEL_DIR, MODEL_PREFIX)
+                logger.warning("No model file found for bin_id=%s in %s (%s)", self.bin_id, MODEL_DIR, f"{MODEL_PREFIX}_{self.bin_id}_*.pkl")
                 return False
 
             model_data = joblib.load(model_path)
@@ -229,7 +230,7 @@ class BinOverflowPredictor:
     def recursive_forecast_distance(
         self,
         historical_data: List[Dict],
-        horizon_days: int = 14,
+        horizon_days: int = 60,
         start_date: Optional[datetime] = None
     ) -> List[Dict[str, Any]]:
         """
@@ -290,7 +291,9 @@ class BinOverflowPredictor:
             if pred_next != pred_next:  # NaN check
                 pred_next = 0.0
             last_distance = hist[-1]["distance_cm"]
-            pred_next = min(pred_next, last_distance)      # no emptying
+            pred_next = min(pred_next, last_distance)
+            if pred_next==last_distance:
+                pred_next = MAX_DISTANCE_CM      
             # pred_next = max(pred_next, MIN_DISTANCE_CM)    # no impossible values
             # pred_next = min(pred_next, MAX_DISTANCE_CM)
 
@@ -425,13 +428,19 @@ class BinOverflowPredictor:
         return forecasts
 
 
-# Singleton instance
-_predictor_instance: Optional[BinOverflowPredictor] = None
+# Cache one predictor per bin_id
+_predictor_cache: Dict[str, BinOverflowPredictor] = {}
 
 
-def get_overflow_predictor() -> BinOverflowPredictor:
-    """Get singleton predictor instance"""
-    global _predictor_instance
-    if _predictor_instance is None:
-        _predictor_instance = BinOverflowPredictor()
-    return _predictor_instance
+def get_overflow_predictor(bin_id: str) -> BinOverflowPredictor:
+    """Get predictor instance for the given bin_id (cached per bin)."""
+    global _predictor_cache
+    if bin_id not in _predictor_cache:
+        _predictor_cache[bin_id] = BinOverflowPredictor(bin_id)
+    return _predictor_cache[bin_id]
+
+
+def clear_predictor_cache() -> None:
+    """Clear cached predictors (e.g. after retraining so new models are loaded)."""
+    global _predictor_cache
+    _predictor_cache.clear()
