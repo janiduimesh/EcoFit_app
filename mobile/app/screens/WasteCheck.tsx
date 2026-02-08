@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
+import { getBinImage } from '../utils/binImages';
 
 type RootStackParamList = {
   Logo: undefined;
@@ -32,12 +33,56 @@ type Props = {
 
 const { width } = Dimensions.get('window');
 
+// Hardcoded bin overflow data - will be replaced with time series model predictions later
+const BIN_OVERFLOW_DATA = [
+  {
+    id: 'blue_bin',
+    name: 'Recycling Bin',
+    color: '#2196F3',
+    overflowDate: 'January 12, 2026',
+    daysUntil: 6,
+    prediction: 'Based on current disposal patterns',
+  },
+  {
+    id: 'yellow_bin',
+    name: 'General Waste',
+    color: '#FFC107',
+    overflowDate: 'January 9, 2026',
+    daysUntil: 3,
+    prediction: 'Higher than usual activity detected',
+  },
+  {
+    id: 'green_bin',
+    name: 'Organic Waste',
+    color: '#4CAF50',
+    overflowDate: 'January 14, 2026',
+    daysUntil: 8,
+    prediction: 'Normal disposal rate',
+  },
+  {
+    id: 'black_bin',
+    name: 'Hazardous Waste',
+    color: '#424242',
+    overflowDate: 'February 2, 2026',
+    daysUntil: 27,
+    prediction: 'Low activity - safe capacity',
+  },
+  {
+    id: 'red_bin',
+    name: 'Electronic Waste',
+    color: '#F44336',
+    overflowDate: 'January 28, 2026',
+    daysUntil: 22,
+    prediction: 'Moderate disposal rate',
+  },
+];
+
 export default function WasteCheck({ navigation }: Props) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [volume, setVolume] = useState('');
-  const [inputMethod, setInputMethod] = useState<'image' | 'description'>('image');
+  const [inputMethod, setInputMethod] = useState<'image' | 'description' | 'overflow'>('image');
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -147,7 +192,24 @@ export default function WasteCheck({ navigation }: Props) {
     }
   };
 
+  const getUrgencyColor = (days: number) => {
+    if (days <= 3) return '#F44336';
+    if (days <= 7) return '#FF9800';
+    return '#4CAF50';
+  };
+
+  const getUrgencyLabel = (days: number) => {
+    if (days <= 3) return 'CRITICAL';
+    if (days <= 7) return 'SOON';
+    return 'SAFE';
+  };
+
   const handleSubmit = async () => {
+    // Only allow submission for image or description methods
+    if (inputMethod === 'overflow') {
+      return;
+    }
+
     if (inputMethod === 'image' && !selectedImage) {
       Alert.alert('Error', 'Please select an image first');
       return;
@@ -172,14 +234,15 @@ export default function WasteCheck({ navigation }: Props) {
       // Import API functions
       const { dispose } = await import('../api/dispose');
       
-      // Prepare waste classification data
-      const wasteData = {
-        user_id: userId || undefined,
-        image_data: inputMethod === 'image' ? imageBase64 || undefined : undefined,
-        description: inputMethod === 'description' ? description.trim() || undefined : undefined,
-        volume: volumeValue ? parseInt(volume) : undefined, 
-        input_method: inputMethod,
-      };
+        // Prepare waste classification data
+        // Type assertion is safe here because we've already checked inputMethod is not 'overflow'
+        const wasteData = {
+          user_id: userId || undefined,
+          image_data: inputMethod === 'image' ? imageBase64 || undefined : undefined,
+          description: inputMethod === 'description' ? description.trim() || undefined : undefined,
+          volume: volumeValue ? parseInt(volume) : undefined, 
+          input_method: inputMethod as 'image' | 'description',
+        };
       
       console.log('Sending waste data:', wasteData);
       
@@ -277,6 +340,19 @@ export default function WasteCheck({ navigation }: Props) {
                 ✏️ Description
               </Text>
             </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.methodButton, inputMethod === 'overflow' && styles.methodButtonActive]}
+              onPress={() => {
+                setInputMethod('overflow');
+                setSelectedImage(null);
+                setImageBase64(null);
+                setDescription('');
+              }}
+            >
+              <Text style={[styles.methodButtonText, inputMethod === 'overflow' && styles.methodButtonTextActive]}>
+                📊 Overflows
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Image Upload Area */}
@@ -320,40 +396,127 @@ export default function WasteCheck({ navigation }: Props) {
             </View>
           )}
 
-          {/* Divider */}
-          <View style={styles.dividerContainer}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>and</Text>
-            <View style={styles.dividerLine} />
-          </View>
+          {/* Overflow Tab Content */}
+          {inputMethod === 'overflow' && (
+            <View style={styles.overflowContainer}>
+              {/* Header */}
+              <View style={styles.overflowHeader}>
+                <View style={styles.overflowHeaderContent}>
+                  <Text style={styles.overflowHeaderIcon}>📊</Text>
+                  <View>
+                    <Text style={styles.overflowTitle}>Bin Overflow Forecast</Text>
+                    <Text style={styles.overflowSubtitle}>AI-Powered Predictions</Text>
+                  </View>
+                </View>
+              </View>
 
-          {/* Volume Input */}
-          <View style={styles.inputSection}>
-            <Text style={styles.sectionTitle}>Waste Volume</Text>
-            <Text style={styles.sectionSubtitle}>Enter approximate volume in milliliters</Text>
-            <View style={styles.volumeInputContainer}>
-              <TextInput
-                style={styles.volumeInput}
-                value={volume}
-                onChangeText={setVolume}
-                placeholder="e.g., 500"
-                keyboardType="numeric"
-                placeholderTextColor="#999"
-              />
-              <Text style={styles.volumeUnit}>ml</Text>
+              {/* Info Banner */}
+              <View style={styles.overflowInfoBanner}>
+                <Text style={styles.overflowInfoIcon}>🤖</Text>
+                <Text style={styles.overflowInfoText}>
+                  Predictions based on time series analysis of your disposal patterns
+                </Text>
+              </View>
+
+              {/* Bin List */}
+              <ScrollView 
+                style={styles.overflowScrollView}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.overflowScrollContent}
+              >
+                {BIN_OVERFLOW_DATA.map((bin) => (
+                  <View key={bin.id} style={styles.overflowBinCard}>
+                    {/* Bin Image and Info */}
+                    <View style={styles.overflowBinHeader}>
+                      <View style={styles.overflowBinImageContainer}>
+                        <Image
+                          source={getBinImage(bin.id)}
+                          style={styles.overflowBinImage}
+                          resizeMode="contain"
+                        />
+                      </View>
+                      <View style={styles.overflowBinInfo}>
+                        <Text style={styles.overflowBinName}>{bin.name}</Text>
+                        <View style={[styles.overflowUrgencyBadge, { backgroundColor: getUrgencyColor(bin.daysUntil) }]}>
+                          <Text style={styles.overflowUrgencyText}>{getUrgencyLabel(bin.daysUntil)}</Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Overflow Date */}
+                    <View style={styles.overflowDateSection}>
+                      <View style={styles.overflowDateContainer}>
+                        <Text style={styles.overflowDateIcon}>📅</Text>
+                        <View>
+                          <Text style={styles.overflowDateLabel}>Predicted Overflow</Text>
+                          <Text style={styles.overflowDateText}>{bin.overflowDate}</Text>
+                        </View>
+                      </View>
+                      <View style={[styles.overflowDaysContainer, { backgroundColor: getUrgencyColor(bin.daysUntil) }]}>
+                        <Text style={styles.overflowDaysNumber}>{bin.daysUntil}</Text>
+                        <Text style={styles.overflowDaysLabel}>days</Text>
+                      </View>
+                    </View>
+
+                    {/* Prediction Note */}
+                    <View style={styles.overflowPredictionNote}>
+                      <Text style={styles.overflowPredictionIcon}>💡</Text>
+                      <Text style={styles.overflowPredictionText}>{bin.prediction}</Text>
+                    </View>
+                  </View>
+                ))}
+
+                {/* Footer Note */}
+                <View style={styles.overflowFooterNote}>
+                  <Text style={styles.overflowFooterIcon}>⚡</Text>
+                  <Text style={styles.overflowFooterText}>
+                    Predictions update daily based on your disposal activity. Time series models analyze historical patterns to forecast overflow dates.
+                  </Text>
+                </View>
+              </ScrollView>
             </View>
-          </View>
+          )}
 
-          {/* Submit Button */}
-          <TouchableOpacity 
-            style={[styles.submitButton, isLoading && styles.submitButtonDisabled]} 
-            onPress={handleSubmit}
-            disabled={isLoading}
-          >
-            <Text style={styles.submitButtonText}>
-              {isLoading ? 'Processing...' : '🔍 Check Waste Type'}
-            </Text>
-          </TouchableOpacity>
+          {/* Divider - Only show for image and description tabs */}
+          {(inputMethod === 'image' || inputMethod === 'description') && (
+            <View style={styles.dividerContainer}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>and</Text>
+              <View style={styles.dividerLine} />
+            </View>
+          )}
+
+          {/* Volume Input - Only show for image and description tabs */}
+          {(inputMethod === 'image' || inputMethod === 'description') && (
+            <View style={styles.inputSection}>
+              <Text style={styles.sectionTitle}>Waste Volume</Text>
+              <Text style={styles.sectionSubtitle}>Enter approximate volume in milliliters</Text>
+              <View style={styles.volumeInputContainer}>
+                <TextInput
+                  style={styles.volumeInput}
+                  value={volume}
+                  onChangeText={setVolume}
+                  placeholder="e.g., 500"
+                  keyboardType="numeric"
+                  placeholderTextColor="#999"
+                />
+                <Text style={styles.volumeUnit}>ml</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Submit Button - Only show for image and description tabs */}
+          {(inputMethod === 'image' || inputMethod === 'description') && (
+            <TouchableOpacity 
+              style={[styles.submitButton, isLoading && styles.submitButtonDisabled]} 
+              onPress={handleSubmit}
+              disabled={isLoading}
+            >
+              <Text style={styles.submitButtonText}>
+                {isLoading ? 'Processing...' : '🔍 Check Waste Type'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
 
@@ -433,7 +596,7 @@ const styles = StyleSheet.create({
   methodButton: {
     flex: 1,
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
     borderRadius: 8,
     alignItems: 'center',
   },
@@ -627,5 +790,198 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 14,
     color: '#666',
+  },
+  // Overflow Tab Styles
+  overflowContainer: {
+    flex: 1,
+    marginBottom: 24,
+  },
+  overflowHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#2E7D32',
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  overflowHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  overflowHeaderIcon: {
+    fontSize: 28,
+    marginRight: 12,
+  },
+  overflowTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  overflowSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+  },
+  overflowInfoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E3F2FD',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  overflowInfoIcon: {
+    fontSize: 20,
+    marginRight: 10,
+  },
+  overflowInfoText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#1565C0',
+    lineHeight: 18,
+  },
+  overflowScrollView: {
+    flex: 1,
+    maxHeight: 500,
+  },
+  overflowScrollContent: {
+    paddingBottom: 20,
+  },
+  overflowBinCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  overflowBinHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  overflowBinImageContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  overflowBinImage: {
+    width: 45,
+    height: 45,
+  },
+  overflowBinInfo: {
+    flex: 1,
+  },
+  overflowBinName: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 6,
+  },
+  overflowUrgencyBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  overflowUrgencyText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.8,
+  },
+  overflowDateSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FAFAFA',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  overflowDateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  overflowDateIcon: {
+    fontSize: 24,
+    marginRight: 10,
+  },
+  overflowDateLabel: {
+    fontSize: 11,
+    color: '#888',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  overflowDateText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#333',
+  },
+  overflowDaysContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    minWidth: 56,
+  },
+  overflowDaysNumber: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  overflowDaysLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.9)',
+    textTransform: 'uppercase',
+  },
+  overflowPredictionNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  overflowPredictionIcon: {
+    fontSize: 14,
+    marginRight: 8,
+  },
+  overflowPredictionText: {
+    fontSize: 12,
+    color: '#888',
+    fontStyle: 'italic',
+    flex: 1,
+  },
+  overflowFooterNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FFF8E1',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  overflowFooterIcon: {
+    fontSize: 18,
+    marginTop: 2,
+    marginRight: 10,
+  },
+  overflowFooterText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#F57C00',
+    lineHeight: 18,
   },
 });
