@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import dispose, health, distance, rag, User_routes
+from routers import dispose, health, distance, rag, User_routes,complaints
 from core.database import connect_to_mongo, close_mongo_connection
 from jobs.schedular import setup_schedular
 
@@ -44,6 +44,8 @@ app.include_router(dispose.router, prefix="/api/v1", tags=["dispose"])
 app.include_router(distance.router, prefix="/api/v1", tags=["distance"])
 app.include_router(rag.router, prefix="/api/v1", tags=["rag"])
 app.include_router(User_routes.router, prefix="/api/v1/user", tags=["user"])
+app.include_router(complaints.router, prefix="/api/v1", tags=["complaints"])
+
 
 @app.get("/")
 async def root():
