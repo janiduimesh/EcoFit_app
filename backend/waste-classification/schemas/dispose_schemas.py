@@ -56,3 +56,37 @@ class TipsFeedbackRequest(BaseModel):
 class TipsFeedbackResponse(BaseModel):
     success: bool
     message: str
+
+
+# Request/Response Schemas
+class OverflowPredictionRequest(BaseModel):
+    target_date: Optional[str] = Field(None, description="Target date (ISO format). Default: tomorrow")
+
+
+class OverflowPredictionResponse(BaseModel):
+    success: bool
+    target_date: Optional[str] = None
+    predicted_distance_cm: Optional[float] = None
+    overflow_risk: Optional[str] = None
+    message: str
+    overflow_date: Optional[str] = Field(None, description="First predicted date when bin overflows (YYYY-MM-DD)")
+
+
+class WeeklyForecastResponse(BaseModel):
+    success: bool
+    forecasts: List[dict]
+    message: str
+
+
+class ModelInfoResponse(BaseModel):
+    status: str
+    trained_at: Optional[str] = None
+    samples_used: Optional[int] = None
+    metrics: Optional[dict] = None
+    version: Optional[str] = None
+    message: str
+
+
+class RetrainResponse(BaseModel):
+    success: bool
+    message: str

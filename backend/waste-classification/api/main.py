@@ -1,8 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+<<<<<<< HEAD
+from routers import dispose, health, distance, User_routes, overflow
+=======
 from routers import dispose, health, distance, rag, User_routes
+>>>>>>> 43a463511768f63cde0750d281ba457c51728501
 from core.database import connect_to_mongo, close_mongo_connection
 from jobs.schedular import setup_schedular
+from jobs.retraining_scheduler import setup_retraining_scheduler
+import logging
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="EcoFit Waste Classification API",
@@ -20,15 +28,24 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup_db_client():
+<<<<<<< HEAD
+=======
     import logging
     logger = logging.getLogger(__name__)
     logger.info("Starting database connection...")
+>>>>>>> 43a463511768f63cde0750d281ba457c51728501
     print("🔄 Starting database connection...")
     await connect_to_mongo()
     
-    # Start the scheduler
-    print("🔄 Starting scheduler...")
-    await setup_schedular()
+    # Start the data collection scheduler
+    print("🔄 Starting data collection scheduler...")
+    scheduler = await setup_schedular()
+    
+    # Add model retraining job to the same scheduler
+    print("🔄 Setting up model retraining scheduler...")
+    setup_retraining_scheduler(scheduler)
+    
+    logger.info("✅ All schedulers started successfully")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
@@ -44,6 +61,7 @@ app.include_router(dispose.router, prefix="/api/v1", tags=["dispose"])
 app.include_router(distance.router, prefix="/api/v1", tags=["distance"])
 app.include_router(rag.router, prefix="/api/v1", tags=["rag"])
 app.include_router(User_routes.router, prefix="/api/v1/user", tags=["user"])
+app.include_router(overflow.router, prefix="/api/v1/overflow", tags=["overflow"])
 
 @app.get("/")
 async def root():
