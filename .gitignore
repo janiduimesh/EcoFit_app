@@ -8,6 +8,10 @@ mobile_flutter/
 .env
 .env.local
 .env.*.local
+ecofit_env/
+
+# models
+backend/waste-classification/model
 
 # Python
 __pycache__/
