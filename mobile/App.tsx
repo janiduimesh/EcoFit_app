@@ -11,6 +11,7 @@ import Result from './app/screens/Result';
 import Login from './app/screens/login';
 import Register from './app/screens/Register';
 import AIAgent from './app/screens/AIAgent';
+import complaint from './app/screens/complaint';
 
 type RootStackParamList = {
   Logo: undefined;
@@ -20,6 +21,7 @@ type RootStackParamList = {
   Register: undefined;
   WasteCheck: undefined;
   AIAgent: undefined;
+  complaint: undefined; 
   Result: { data: any };
 };
 
@@ -76,6 +78,12 @@ export default function App() {
           component={AIAgent} 
           options={{ title: 'AI Agent' }}
         />
+        <Stack.Screen
+  name="complaint"
+  component={complaint}
+  options={{ title: 'Complaint' }}
+/>
+
         <Stack.Screen 
           name="Result" 
           component={Result} 

@@ -20,6 +20,7 @@ type RootStackParamList = {
   Register: undefined;
   WasteCheck: undefined;
   AIAgent: undefined;
+  complaint: undefined;
   Result: { data: any };
 };
 
@@ -86,8 +87,8 @@ export default function Main({ navigation }: Props) {
   };
 
   const handleComplaints = () => {
-    // TODO: Implement complaints
-    console.log('Complaints pressed');
+  navigation.navigate('complaint');
+
   };
 
   const handleBinOverflow = () => {

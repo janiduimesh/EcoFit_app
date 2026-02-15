@@ -22,10 +22,10 @@ type RootStackParamList = {
   Home: undefined;
   WasteCheck: undefined;
   Result: { data: any };
-  ComplaintCreate: undefined;
+  complaint: undefined;
 };
 
-type ComplaintCreateScreenNavigationProp = StackNavigationProp<RootStackParamList, 'ComplaintCreate'>;
+type ComplaintCreateScreenNavigationProp = StackNavigationProp<RootStackParamList, 'complaint'>;
 
 type Props = {
   navigation: ComplaintCreateScreenNavigationProp;
@@ -110,7 +110,7 @@ export default function ComplaintCreate({ navigation }: Props) {
     try {
       setIsLoading(true);
 
-      const { createComplaint } = await import('../api/complaints');
+      const { createComplaint } = await import('../api/complaint');
 
       const payload = {
         lat,

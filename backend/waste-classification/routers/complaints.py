@@ -11,9 +11,7 @@ logger = logging.getLogger(__name__)
 
 async def get_next_complaint_id() -> str:
     """
-    Generate next sequential complaint ID like CMP_000001
-    Uses counters collection (same approach as TIP_0001 in your friend's router)
-    """
+    Generate next sequential complaint ID like CMP_000001    """
     db = get_database()
     if db is None:
         raise HTTPException(status_code=500, detail="Database not connected")
