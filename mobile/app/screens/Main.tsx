@@ -13,6 +13,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import OnboardingModal from '../components/OnboardingModal';
 import { getOverflowPredict } from '../api/overflow';
 import { getBinImage } from '../utils/binImages';
+import api from '../api/Tax';
 
 // 5 bins matching backend BinCategory (core/constants.py) — colors match bin types (yellow, blue, green, black, red)
 const BIN_LIST = [
@@ -40,6 +41,8 @@ type RootStackParamList = {
   Register: undefined;
   WasteCheck: undefined;
   AIAgent: undefined;
+  Tax: { email: string };
+  Tax_Household: { email: string };
   Result: { data: any };
 };
 
@@ -111,10 +114,32 @@ export default function Main({ navigation }: Props) {
     navigation.navigate('WasteCheck');
   };
 
-  const handleCalculateTax = () => {
-    // TODO: Implement tax calculation
-    console.log('Calculate Tax pressed');
-  };
+  const handleCalculateTax = async () => {
+    try {
+        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+        let email = await AsyncStorage.getItem('user_email');
+
+    if (!email) {
+      Alert.alert("Error", "No email found. Please log in again.");
+      return;
+    }
+
+    // FORCE LOWERCASE AND REMOVE SPACES
+    const sanitizedEmail = email.trim().toLowerCase();
+    console.log("Checking household for:", sanitizedEmail);
+
+    const response = await api.get(`/household/check_by_email/${sanitizedEmail}`);
+
+    if (response.data.exists) {
+      navigation.navigate('Tax', { email: sanitizedEmail });
+    } else {
+      navigation.navigate('Tax_Household', { email: sanitizedEmail });
+    }
+  } catch (error) {
+    console.error('Household check failed:', error);
+  }
+};
+
 
   const handleAIAgent = () => {
     //console.log('AI Agent pressed');
