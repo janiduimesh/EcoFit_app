@@ -23,6 +23,7 @@ type RootStackParamList = {
   Register: undefined;
   WasteCheck: undefined;
   Result: { data: any };
+  Main: { email?: string }
 };
 
 type RegisterScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Register'>;
@@ -82,6 +83,7 @@ export default function Register({ navigation }: Props) {
         try {
           const AsyncStorage = require('@react-native-async-storage/async-storage').default;
           await AsyncStorage.setItem('user_id', response.user_id);
+          await AsyncStorage.setItem('user_email', email.trim().toLowerCase());
           await AsyncStorage.removeItem('onboarding_completed');
         } catch (storageError) {
           console.warn('Could not store user ID:', storageError);
