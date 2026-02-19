@@ -24,6 +24,7 @@ type RootStackParamList = {
   Register: undefined;
   WasteCheck: undefined;
   Result: { data: any };
+  Tax_Household: { email: string };
 };
 
 type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Login'>;
@@ -60,14 +61,17 @@ export default function Login({ navigation }: Props) {
 
       console.log('Login successful:', response);
 
+
+
       if (response.user_id) {
         await AsyncStorage.setItem('user_id', response.user_id);
+        await AsyncStorage.setItem('user_email', email.trim().toLowerCase());
       }
-      
+
       Alert.alert('Success', response.message || 'Login successful!', [
-        { 
-          text: 'OK', 
-          onPress: () => navigation.replace('Main') 
+        {
+          text: 'OK',
+          onPress: () => navigation.replace('Main')
         },
       ]);
     } catch (error: any) {
@@ -83,6 +87,7 @@ export default function Login({ navigation }: Props) {
       setIsLoading(false);
     }
   };
+
 
   const navigateToRegister = () => {
     navigation.navigate('Register');
