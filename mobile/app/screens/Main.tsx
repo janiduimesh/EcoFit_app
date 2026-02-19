@@ -8,6 +8,7 @@ import {
   Dimensions,
   ScrollView,
   Image,
+  Alert,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import OnboardingModal from '../components/OnboardingModal';

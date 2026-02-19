@@ -22,7 +22,8 @@ type RootStackParamList = {
   Register: undefined;
   WasteCheck: undefined;
   AIAgent: undefined;
-
+  Tax: { email: string };
+  Tax_Household: { email: string };
   Result: { data: any };
 };
 
@@ -33,22 +34,22 @@ export default function App() {
     <NavigationContainer>
       <StatusBar style="auto" />
       <Stack.Navigator
-        initialRouteName="Login"
-        // screenOptions={{
-        //   headerStyle: {
-        //     backgroundColor: '#4CAF50',
-        //   },
-        //   headerTintColor: '#fff',
-        //   headerTitleStyle: {
-        //     fontWeight: 'bold',
-        //   },
-        // }}
+        initialRouteName="Logo"
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: '#4CAF50',
+          },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: 'bold',
+          },
+        }}
       >
-        {/* <Stack.Screen 
+        <Stack.Screen 
           name="Logo" 
           component={Logo} 
           options={{ headerShown: false }}
-        /> */}
+        />
         <Stack.Screen 
           name="Login" 
           component={Login} 
@@ -86,14 +87,14 @@ export default function App() {
         />
 
          <Stack.Screen
-        name="Tax"
-        component={Tax}
-        options={{ title: 'Check Tax' }}
+          name="Tax"
+          component={Tax}
+          options={{ title: 'Check Tax' }}
         />
         <Stack.Screen
-        name="Tax_Household"
-        component={Tax_Household}
-        options={{ title: 'Create Household' }}
+          name="Tax_Household"
+          component={Tax_Household}
+          options={{ title: 'Create Household' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
