@@ -13,6 +13,7 @@ import Register from './app/screens/Register';
 import AIAgent from './app/screens/AIAgent';
 import Tax from './app/screens/Tax';
 import Tax_Household from './app/screens/Tax_Household';
+import PaymentScreen from './app/screens/Tax_Payment';
 
 type RootStackParamList = {
   Logo: undefined;
@@ -22,6 +23,7 @@ type RootStackParamList = {
   Register: undefined;
   WasteCheck: undefined;
   AIAgent: undefined;
+
 
   Result: { data: any };
 };
@@ -94,6 +96,12 @@ export default function App() {
         name="Tax_Household"
         component={Tax_Household}
         options={{ title: 'Create Household' }}
+        />
+
+        <Stack.Screen
+          name="Payment"
+          component={PaymentScreen}
+          options={{ title: 'Payment' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

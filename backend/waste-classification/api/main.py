@@ -62,3 +62,5 @@ app.include_router(tax_routes.router, prefix="/api/v1", tags=["tax_routes"])
 @app.get("/")
 async def root():
     return {"message": "EcoFit Waste Classification API", "version": "1.0.0"}
+
+

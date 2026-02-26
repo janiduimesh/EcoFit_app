@@ -1,4 +1,3 @@
-from fastapi import APIRouter, HTTPException, FastAPI
 from services.tax_services import classify_behaviour
 from services.tax_services import tax_engine
 from schemas.tax_schemas import CreateUserRequest, AddWeekRequest
@@ -8,18 +7,17 @@ from schemas.tax_schemas import GenerateMonthlyBillResponse, EmptyMonthlyBillRes
 from schemas.tax_schemas import TaxInput, TaxOutput
 from schemas.tax_schemas import SubmitWeightRequest, PendingItemResponse, ReviewActionRequest
 from datetime import datetime
-from typing import List
 from tensorflow.keras.models import load_model
 from pathlib import Path
 import numpy as np
 import joblib
 import pandas as pd
-
+from typing import List, Optional
+from fastapi import APIRouter, HTTPException, Depends, status, Query
 from core.database import get_database
 
 router = APIRouter()
 
-# --- Configuration & Global Constants ---
 MODELS_DIR = Path("model/weight_model")
 TAX_MODEL_PATH = Path("./model/tax_model/tax_rate_predictor_v1.pkl")
 WASTE_TYPES_LIST = ["Organic", "Recyclable", "Inorganic"]
@@ -39,14 +37,13 @@ FEATURE_KEYS = [
 
 WASTE_TYPES = ["Organic", "Recyclable", "Inorganic"]
 
-# --- Model Loading Logic ---
 lstm_models = {}
 scalers_x = {}
 scalers_y = {}
 tax_model = None
 
 try:
-    # Load LSTM Models
+
     for display_name in WASTE_TYPES_LIST:
         key = WASTE_TYPE_MAP[display_name]
         model_path = MODELS_DIR / f"{key}_lstm_model.keras"
@@ -58,14 +55,12 @@ try:
             scalers_x[key] = joblib.load(sx_path)
             scalers_y[key] = joblib.load(sy_path)
 
-    # Load Tax Model
+
     if TAX_MODEL_PATH.exists():
         tax_model = joblib.load(TAX_MODEL_PATH)
 except Exception as e:
     print(f"Critical Error loading models: {e}")
 
-
-# --- Helper Functions ---
 
 def predict_weight_core(waste_key: str, features_sequence: list) -> float:
     if waste_key not in lstm_models:
@@ -108,7 +103,6 @@ async def handle_cold_start(data, base_rate):
     )
 
 
-# --- Endpoints: User Management ---
 
 @router.get("/household/check_by_email/{email}")
 async def check_household_by_email(email: str):
@@ -193,7 +187,6 @@ async def get_weeks(household_id: str):
             "waste_data": result}
 
 
-# --- Endpoints: Weekly & Prediction ---
 
 @router.post("/process_weekly_waste", response_model=DashboardResponse)
 async def process_weekly_waste(data: PredictNextRequest):
@@ -276,7 +269,6 @@ async def sync_missing_weeks(household_id: str):
     return {"status": "sync_complete", "actions": actions_log}
 
 
-# --- Endpoints: Billing & Tax ---
 
 @router.get("/generate_monthly/{year}/{month}", response_model=GenerateMonthlyBillResponse)
 async def generate_monthly_bill(year: int, month: int):
@@ -339,12 +331,18 @@ async def get_all_households():
 
 
 @router.get("/all_pending_reviews")
-async def get_all_pending_reviews():
+async def get_all_pending_reviews(location: Optional[str] = Query(None)):
     db = get_database()
     if db is None:
         raise HTTPException(status_code=500, detail="Database connection not ready")
 
-    cursor = db.pending_col.find({"status": "REVIEW"}).sort("submitted_at", 1)
+    query = {"status": "REVIEW"}
+
+    if location:
+
+        query["household_id"] = {"$regex": location, "$options": "i"}
+
+    cursor = db.pending_col.find(query).sort("submitted_at", 1)
 
     results = []
     async for doc in cursor:
@@ -362,10 +360,9 @@ async def get_all_pending_reviews():
 
 @router.post("/predict_next_week", response_model=WeightOutput)
 async def predict_next_week(data: PredictNextRequest):
-    # 1. Fetch the database handle locally inside the function
+
     db = get_database()
 
-    # 2. Check explicitly against None (NotImplementedError occurs if using 'if not db')
     if db is None:
         raise HTTPException(status_code=500, detail="Database connection not ready")
 
@@ -373,7 +370,7 @@ async def predict_next_week(data: PredictNextRequest):
     if not model_key:
         raise HTTPException(400, "Invalid waste type")
 
-    # 3. Access the collection from the local 'db' instance
+
     record = await db.history_col.find_one({
         "household_id": data.household_id,
         "waste_type": data.waste_type
@@ -432,20 +429,17 @@ async def predict_next_week(data: PredictNextRequest):
 
 @router.get("/history_statement/{household_id}/{waste_type}", response_model=HistoryTaxResponse)
 async def get_tax_history(household_id: str, waste_type: str):
-    # 1. Fetch the database handle locally inside the function
+
     db = get_database()
 
-    # 2. Check explicitly against None to prevent NotImplementedError
     if db is None:
         raise HTTPException(status_code=500, detail="Database connection not ready")
 
-    # 3. Fetch Price Info using the local db instance
     price_record = await db.waste_prices.find_one({"waste_type": waste_type})
     base_rate = 0.0
     if price_record:
         base_rate = price_record.get("base_price", price_record.get("current_base_price", 0.0))
 
-    # 4. Fetch History Record
     record = await db.history_col.find_one({"household_id": household_id, "waste_type": waste_type})
     if not record or "weeks" not in record:
         raise HTTPException(404, "No history found")
@@ -453,18 +447,16 @@ async def get_tax_history(household_id: str, waste_type: str):
     weeks = sorted(record["weeks"], key=lambda x: (x["year"], x["week"]))
     report_items = []
 
-    # Track previous weight to determine Lag1 dynamically
     prev_weight = 0.0
 
     for i, w in enumerate(weeks):
-        # Use existing helper to get historical pricing
+
         historical_rate = get_price_for_week(price_record, w["year"], w["week"], base_rate)
         if historical_rate == 0.0: historical_rate = base_rate
 
-        # Determine Lag1: use previous week's weight if available
+
         lag1 = prev_weight if i > 0 else 0.0
 
-        # Calculate Bill using the tax engine
         bill_data = tax_engine.calculate_bill(
             weight=w["weight_kg"],
             category=waste_type,
@@ -485,7 +477,7 @@ async def get_tax_history(household_id: str, waste_type: str):
             final_bill=bill_data["final_bill"]
         ))
 
-        # Update prev_weight for next iteration
+
         prev_weight = w["weight_kg"]
 
     return HistoryTaxResponse(
@@ -495,17 +487,16 @@ async def get_tax_history(household_id: str, waste_type: str):
         history=report_items
     )
 
-
 @router.get("/my_submissions/{household_id}/{waste_type}")
 async def get_my_submissions(household_id: str, waste_type: str):
-    # 1. Fetch the database handle locally
+
     db = get_database()
 
-    # 2. Check explicitly against None
+
     if db is None:
         raise HTTPException(status_code=500, detail="Database connection not ready")
 
-    # 3. Use the local db handle to access the collection
+
     cursor = db.pending_col.find({
         "household_id": household_id,
         "waste_type": waste_type,
@@ -527,14 +518,14 @@ async def get_my_submissions(household_id: str, waste_type: str):
 
 @router.get("/pending_reviews", response_model=List[PendingItemResponse])
 async def get_pending_reviews():
-    # 1. Fetch the database handle locally
+
     db = get_database()
 
-    # 2. Check explicitly against None
+
     if db is None:
         raise HTTPException(status_code=500, detail="Database connection not ready")
 
-    # 3. Use the local db handle to access the collection
+
     cursor = db.pending_col.find({"status": "REVIEW"})
 
     results = []
@@ -545,21 +536,51 @@ async def get_pending_reviews():
             waste_type=doc["waste_type"],
             weight_kg=doc["weight_kg"],
             status=doc["status"],
-            submitted_at=doc["submitted_at"]
+            submitted_at=doc["submitted_at"],
+            week=doc.get("week", 0)
         ))
     return results
 
 
+
+@router.get("/pending_reviews/{household_id}", response_model=List[PendingItemResponse])
+async def get_household_pending_reviews(household_id: str, location: Optional[str] = Query(None)):
+    db = get_database() #
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database connection not ready") #
+
+
+    query = {"household_id": household_id, "status": "REVIEW"} #
+
+
+    if location:
+
+        query["household_id"] = {"$regex": f".*{location}.*", "$options": "i"} #
+
+    cursor = db.pending_col.find(query) #
+    results = []
+    async for doc in cursor:
+        results.append(PendingItemResponse(
+            submission_id=str(doc["_id"]),
+            household_id=doc["household_id"],
+            waste_type=doc["waste_type"],
+            weight_kg=doc["weight_kg"],
+            status=doc["status"],
+            submitted_at=doc["submitted_at"],
+            week=doc.get("week", 0)
+        ))
+    return results
+
 @router.get("/predict_next_week/{household_id}")
 async def predict_next_week(household_id: str):
-    # 1. Fetch the database handle locally inside the function
+
     db = get_database()
 
-    # 2. Check explicitly against None to avoid NotImplementedError
+
     if db is None:
         raise HTTPException(status_code=500, detail="Database connection not ready")
 
-    # 3. Access the households collection from the local db instance
+
     household = await db.households_col.find_one({"_id": household_id})
     if not household:
         raise HTTPException(status_code=404, detail="Household not found")
@@ -569,7 +590,6 @@ async def predict_next_week(household_id: str):
     for wtype in WASTE_TYPES:
         model_key = WASTE_TYPE_MAP[wtype]
 
-        # 4. Access the history collection from the local db instance
         record = await db.history_col.find_one({
             "household_id": household_id,
             "waste_type": wtype
@@ -582,7 +602,6 @@ async def predict_next_week(household_id: str):
             if len(weeks_data) >= SEQ_LEN:
                 input_sequence = weeks_data[-SEQ_LEN:]
                 try:
-                    # predict_weight_core should be defined in the same file or imported
                     raw_pred = predict_weight_core(model_key, input_sequence)
                     prediction_val = round(max(0.0, raw_pred), 2)
                 except Exception:
@@ -598,3 +617,25 @@ async def predict_next_week(household_id: str):
     }
 
 
+@router.get("/household/profile/{household_id}")
+async def get_household_profile(household_id: str):
+
+    db = get_database()  #
+
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database connection not ready")
+
+    household = await db.households_col.find_one({"_id": household_id})
+
+    if not household:
+        raise HTTPException(status_code=404, detail="Household profile not found")
+
+    return {
+        "household_id": household.get("_id"),
+        "linked_email": household.get("linked_email", "N/A"),
+        "income_tier": household.get("income_tier", "Unknown"),
+        "qr_code": household.get("qr_code", ""),
+        "created_at": {
+            "$date": household.get("created_at", datetime.utcnow())
+        }
+    }

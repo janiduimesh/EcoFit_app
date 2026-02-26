@@ -82,7 +82,7 @@ export default function Main({ navigation }: Props) {
 
   const checkOnboardingStatus = async () => {
     try {
-      // Dynamically import AsyncStorage to handle cases where it's not installed
+
       let AsyncStorage;
       try {
         AsyncStorage = require('@react-native-async-storage/async-storage').default;
@@ -94,7 +94,7 @@ export default function Main({ navigation }: Props) {
       const onboardingCompleted = await AsyncStorage.getItem('onboarding_completed');
       const storedUserId = await AsyncStorage.getItem('user_id');
       
-      // If onboarding not completed, show the modal
+
       if (onboardingCompleted !== 'true') {
         setShowOnboarding(true);
         if (storedUserId) {
@@ -115,20 +115,23 @@ export default function Main({ navigation }: Props) {
   };
 
   const handleCalculateTax = async () => {
-    try {
-        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-        let email = await AsyncStorage.getItem('user_email');
+  try {
+    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+    let email = await AsyncStorage.getItem('user_email');
 
     if (!email) {
       Alert.alert("Error", "No email found. Please log in again.");
       return;
     }
 
-    // FORCE LOWERCASE AND REMOVE SPACES
+
     const sanitizedEmail = email.trim().toLowerCase();
     console.log("Checking household for:", sanitizedEmail);
 
-    const response = await api.get(`/household/check_by_email/${sanitizedEmail}`);
+
+    const response = await api.get(`/household/check_by_email/${sanitizedEmail}`, {
+      timeout: 30000,
+    });
 
     if (response.data.exists) {
       navigation.navigate('Tax', { email: sanitizedEmail });
@@ -136,10 +139,14 @@ export default function Main({ navigation }: Props) {
       navigation.navigate('Tax_Household', { email: sanitizedEmail });
     }
   } catch (error) {
-    console.error('Household check failed:', error);
+    if (error.code === 'ECONNABORTED') {
+      console.error('Request timed out after 30 seconds');
+      Alert.alert("Connection Error", "The server took too long to respond. Please try again.");
+    } else {
+      console.error('Household check failed:', error);
+    }
   }
 };
-
 
   const handleAIAgent = () => {
     //console.log('AI Agent pressed');
