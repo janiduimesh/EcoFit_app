@@ -87,7 +87,7 @@ export default function Main({ navigation }: Props) {
   };
 
   const handleComplaints = () => {
-  navigation.navigate('complaint');
+    navigation.navigate('complaint');
 
   };
 

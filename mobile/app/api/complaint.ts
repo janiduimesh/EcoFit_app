@@ -14,8 +14,7 @@ export interface ComplaintCreateRequest {
   userId?: string;
   contact?: string;
 
-  // optional if you ever send it
-  status?: string; // default "open" in backend
+  status?: string; // optional
 }
 
 export interface ComplaintDoc {
@@ -29,7 +28,6 @@ export interface ComplaintDoc {
   status?: string;
   createdAt?: string;
 
-  // stored by backend
   location?: {
     type: 'Point';
     coordinates: [number, number]; // [lng, lat]
@@ -52,19 +50,22 @@ export interface LiveComplaintsResponse {
 }
 
 /**
- * POST /complaints
+ * POST /api/v1/complaints
  */
 export const createComplaint = async (
   request: ComplaintCreateRequest
 ): Promise<CreateComplaintResponse> => {
   try {
-    const response = await fetch(`${getApiUrl()}/complaints`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(request),
-    });
+    const response = await fetch(
+      `${getApiUrl()}/api/v1/complaints`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      }
+    );
 
     if (!response.ok) {
       const txt = await response.text();
@@ -79,7 +80,7 @@ export const createComplaint = async (
 };
 
 /**
- * GET /complaints/live?hours=24&wardId=W01&limit=2000
+ * GET /api/v1/complaints/live
  */
 export const getLiveComplaints = async (params?: {
   hours?: number;
@@ -95,12 +96,15 @@ export const getLiveComplaints = async (params?: {
     query.append('limit', String(limit));
     if (params?.wardId) query.append('wardId', params.wardId);
 
-    const response = await fetch(`${getApiUrl()}/complaints/live?${query.toString()}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await fetch(
+      `${getApiUrl()}/api/v1/complaints/live?${query.toString()}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
     if (!response.ok) {
       const txt = await response.text();

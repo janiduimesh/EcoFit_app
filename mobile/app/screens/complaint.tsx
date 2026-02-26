@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as Location from 'expo-location';
+import { Picker } from '@react-native-picker/picker';
 
 type RootStackParamList = {
   Logo: undefined;
@@ -34,17 +35,53 @@ type Props = {
 const { width } = Dimensions.get('window');
 
 export default function ComplaintCreate({ navigation }: Props) {
-  const [wardId, setWardId] = useState('');
-  const [category, setCategory] = useState('garbage');
-  const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
-  const [contact, setContact] = useState('');
+  // Ward is optional
+  const [wardId, setWardId] = useState<string>('');
+
+  // No default values (start empty)
+  const [category, setCategory] = useState<string>('');
+  const [priority, setPriority] = useState<string>('');
+  const [description, setDescription] = useState<string>('');
+
+  // Contact is required (not optional)
+  const [contact, setContact] = useState<string>('');
 
   const [userId, setUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
+
+  // Dropdown options
+  const wardOptions = [
+    '', // empty = not selected (optional)
+    'W01', 'W02', 'W03', 'W04', 'W05', 'W06', 'W07', 'W08', 'W09', 'W10',
+    'W11', 'W12', 'W13', 'W14', 'W15', 'W16', 'W17', 'W18', 'W19', 'W20',
+  ];
+
+  const categoryOptions = [
+    { value: '', label: 'Select category...' },
+    { value: 'garbage', label: 'Garbage / Mixed Waste' },
+    { value: 'overflow', label: 'Bin Overflow' },
+    { value: 'illegal_dumping', label: 'Illegal Dumping' },
+    { value: 'missed_collection', label: 'Missed Collection' },
+    { value: 'burning_waste', label: 'Burning Waste' },
+    { value: 'bad_odour', label: 'Bad Odour' },
+    { value: 'hazardous_waste', label: 'Hazardous Waste' },
+    { value: 'medical_waste', label: 'Medical Waste' },
+    { value: 'construction_debris', label: 'Construction Debris' },
+    { value: 'e_waste', label: 'E-waste' },
+    { value: 'animal_carcass', label: 'Dead Animal' },
+    { value: 'blocked_drain', label: 'Blocked Drain (Waste related)' },
+    { value: 'other', label: 'Other' },
+  ];
+
+  const priorityOptions = [
+    { value: '', label: 'Select priority...' },
+    { value: 'low', label: 'Low' },
+    { value: 'medium', label: 'Medium' },
+    { value: 'high', label: 'High' },
+  ];
 
   useEffect(() => {
     const loadUserId = async () => {
@@ -90,18 +127,37 @@ export default function ComplaintCreate({ navigation }: Props) {
   };
 
   const handleSubmit = async () => {
-    // basic validation
+    // Required: description
     if (!description.trim()) {
       Alert.alert('Error', 'Please enter a complaint description');
       return;
     }
 
+    // Required: category
+    if (!category) {
+      Alert.alert('Error', 'Please select a category');
+      return;
+    }
+
+    // Required: priority
+    if (!priority) {
+      Alert.alert('Error', 'Please select a priority');
+      return;
+    }
+
+    // Required: contact
+    if (!contact.trim()) {
+      Alert.alert('Error', 'Please enter your contact number');
+      return;
+    }
+
+    // Required: location
     if (lat === null || lng === null) {
       Alert.alert('Error', 'Please add your current location first');
       return;
     }
 
-    // priority validation (avoid random values)
+    // Safety validation
     if (!['low', 'medium', 'high'].includes(priority)) {
       Alert.alert('Error', 'Priority must be low / medium / high');
       return;
@@ -115,12 +171,12 @@ export default function ComplaintCreate({ navigation }: Props) {
       const payload = {
         lat,
         lng,
-        wardId: wardId.trim() || undefined,
-        category: category.trim() || 'general',
+        wardId: wardId.trim() || undefined, // optional
+        category,
         description: description.trim(),
-        priority,
+        priority: priority as 'low' | 'medium' | 'high',
         userId: userId || undefined,
-        contact: contact.trim() || undefined,
+        contact: contact.trim(), // required
       };
 
       console.log('Sending complaint payload:', payload);
@@ -132,17 +188,14 @@ export default function ComplaintCreate({ navigation }: Props) {
           {
             text: 'OK',
             onPress: () => {
-              // reset form
+              // reset form (no defaults)
               setWardId('');
-              setCategory('garbage');
+              setCategory('');
               setDescription('');
-              setPriority('medium');
+              setPriority('');
               setContact('');
               setLat(null);
               setLng(null);
-
-              // go back if you want
-              // navigation.goBack();
             },
           },
         ]);
@@ -181,30 +234,41 @@ export default function ComplaintCreate({ navigation }: Props) {
             <Text style={styles.sectionSubtitle}>Report waste-related issues in your area</Text>
           </View>
 
-          {/* Ward ID */}
+          {/* Ward ID (Optional) */}
           <View style={styles.inputSection}>
             <Text style={styles.sectionTitle}>Ward ID (Optional)</Text>
-            <Text style={styles.sectionSubtitle}>eg - W01, W12 (If you know)</Text>
-            <TextInput
-              style={styles.descriptionInput}
-              value={wardId}
-              onChangeText={setWardId}
-              placeholder="Enter ward id (optional)"
-              placeholderTextColor="#999"
-            />
+            <Text style={styles.sectionSubtitle}>Select if you know (otherwise leave empty)</Text>
+
+            <View style={styles.pickerWrapper}>
+              <Picker
+                selectedValue={wardId}
+                onValueChange={(value) => setWardId(String(value))}
+              >
+                <Picker.Item label="Select ward (optional)..." value="" />
+                {wardOptions
+                  .filter((w) => w !== '')
+                  .map((w) => (
+                    <Picker.Item key={w} label={w} value={w} />
+                  ))}
+              </Picker>
+            </View>
           </View>
 
           {/* Category */}
           <View style={styles.inputSection}>
             <Text style={styles.sectionTitle}>Category</Text>
-            <Text style={styles.sectionSubtitle}>eg - garbage, overflow, illegal_dumping</Text>
-            <TextInput
-              style={styles.descriptionInput}
-              value={category}
-              onChangeText={setCategory}
-              placeholder="Enter category"
-              placeholderTextColor="#999"
-            />
+            <Text style={styles.sectionSubtitle}>Select the closest category</Text>
+
+            <View style={styles.pickerWrapper}>
+              <Picker
+                selectedValue={category}
+                onValueChange={(value) => setCategory(String(value))}
+              >
+                {categoryOptions.map((c) => (
+                  <Picker.Item key={c.value || 'empty'} label={c.label} value={c.value} />
+                ))}
+              </Picker>
+            </View>
           </View>
 
           {/* Description */}
@@ -225,21 +289,25 @@ export default function ComplaintCreate({ navigation }: Props) {
 
           {/* Priority */}
           <View style={styles.inputSection}>
-            <Text style={styles.sectionTitle}>Priority (low/medium/high)</Text>
-            <Text style={styles.sectionSubtitle}>Default is medium</Text>
-            <TextInput
-              style={styles.descriptionInput}
-              value={priority}
-              onChangeText={(t) => setPriority(t as any)}
-              placeholder="medium"
-              placeholderTextColor="#999"
-            />
+            <Text style={styles.sectionTitle}>Priority</Text>
+            <Text style={styles.sectionSubtitle}>Select priority level</Text>
+
+            <View style={styles.pickerWrapper}>
+              <Picker
+                selectedValue={priority}
+                onValueChange={(value) => setPriority(String(value))}
+              >
+                {priorityOptions.map((p) => (
+                  <Picker.Item key={p.value || 'empty'} label={p.label} value={p.value} />
+                ))}
+              </Picker>
+            </View>
           </View>
 
-          {/* Contact */}
+          {/* Contact (Required) */}
           <View style={styles.inputSection}>
-            <Text style={styles.sectionTitle}>Contact (Optional)</Text>
-            <Text style={styles.sectionSubtitle}>Phone number if needed</Text>
+            <Text style={styles.sectionTitle}>Contact</Text>
+            <Text style={styles.sectionSubtitle}>Phone number (required)</Text>
             <TextInput
               style={styles.descriptionInput}
               value={contact}
@@ -366,6 +434,21 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontStyle: 'italic',
   },
+
+  // NEW: picker wrapper uses the same “input” look
+  pickerWrapper: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+
   imageUploadButton: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,

@@ -79,10 +79,10 @@ export default function App() {
           options={{ title: 'AI Agent' }}
         />
         <Stack.Screen
-  name="complaint"
-  component={complaint}
-  options={{ title: 'Complaint' }}
-/>
+          name="complaint"
+          component={complaint}
+          options={{ title: 'Complaint' }}
+        />
 
         <Stack.Screen 
           name="Result" 
