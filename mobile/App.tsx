@@ -13,6 +13,7 @@ import Register from './app/screens/Register';
 import AIAgent from './app/screens/AIAgent';
 import Tax from './app/screens/Tax';
 import Tax_Household from './app/screens/Tax_Household';
+import complaint from './app/screens/complaint';
 
 type RootStackParamList = {
   Logo: undefined;
@@ -25,6 +26,7 @@ type RootStackParamList = {
   Tax: { email: string };
   Tax_Household: { email: string };
   Result: { data: any };
+  complaint: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -90,6 +92,11 @@ export default function App() {
           name="Tax"
           component={Tax}
           options={{ title: 'Check Tax' }}
+        />
+         <Stack.Screen
+          name="complaint"
+          component={complaint}
+          options={{ title: 'Complaint' }}
         />
         <Stack.Screen
           name="Tax_Household"

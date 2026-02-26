@@ -45,6 +45,7 @@ type RootStackParamList = {
   Tax: { email: string };
   Tax_Household: { email: string };
   Result: { data: any };
+  complaint: undefined;
 };
 
 type MainScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Main'>;
@@ -148,8 +149,7 @@ export default function Main({ navigation }: Props) {
   };
 
   const handleComplaints = () => {
-    // TODO: Implement complaints
-    console.log('Complaints pressed');
+    navigation.navigate('complaint')
   };
 
   const connectedCount = BIN_LIST.filter((b) => binConnected[b.id]).length;
