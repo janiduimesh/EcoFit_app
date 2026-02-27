@@ -1,5 +1,5 @@
-from services.rag.English.retrieval import retrieve_chunks, build_context
-from services.rag.English.llm import client
+from services.rag.english.retrieval import retrieve_chunks, build_context
+from services.rag.english.llm import client
 
 GROQ_MODEL = "llama-3.1-8b-instant"
 

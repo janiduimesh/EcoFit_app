@@ -1,6 +1,6 @@
 import numpy as np
 from sentence_transformers import SentenceTransformer, CrossEncoder
-from services.rag.English.loader import chunked_docs, metadata, embeddings, index
+from services.rag.english.loader import chunked_docs, metadata, embeddings, index
 from core.config import settings
 
 EMBED_MODEL = "BAAI/bge-small-en-v1.5"

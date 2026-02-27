@@ -1,2 +1,6 @@
 /.expo
 mobile_flutter/
+# Python virtual environment
+venv/
+# Environment variables
+.env
