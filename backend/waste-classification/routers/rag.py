@@ -1,14 +1,16 @@
 from fastapi import APIRouter, HTTPException
-from services.rag.English.pipeline import rag_answer
+from services.rag.english.pipeline import rag_answer as english_rag
+from services.rag.sinhala.pipeline import rag_answer as sinhala_rag
 from services.User_service import get_user_area
 from schemas.rag_schemas import RAGQuery
+from core.language import detect_language
 import logging
 
 router = APIRouter(prefix="/rag", tags=["RAG Chatbot"])
 
 @router.post("/ask")
 async def ask_rag(data: RAGQuery):
-     #Get user's area from DB
+    #Get user's area from DB
     area = await get_user_area(data.user_id)
 
     if not area:
@@ -17,4 +19,14 @@ async def ask_rag(data: RAGQuery):
             detail="User area not found"
         )
 
-    return rag_answer(data.query, area)
+    #Detect language
+    language = detect_language(data.query)
+
+    logging.info(f"[RAG] User query detected as '{language}' | User area: {area}")
+
+    if language == "sinhala":
+        return sinhala_rag(data.query, area)
+
+    return english_rag(data.query, area)
+
+
