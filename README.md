@@ -69,3 +69,7 @@ npx expo install --fix
 The app will start with the logo screen, then show the main menu with 4 buttons, and the "Check Waste Type" button will take you to the waste classification interface for now!
 
 
+#### **http://localhost:8000/docs#/rag/ask_rag_api_v1_rag_ask_post**
+
+
+
