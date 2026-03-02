@@ -17,7 +17,7 @@ MODEL_DIR = Path(__file__).parent.parent / "model" / "overflow"
 MODEL_PREFIX = "lag_model_random"
 MIN_DISTANCE_CM = 5.0
 MAX_DISTANCE_CM = 111.0
-OVERFLOW_DISTANCE_CM = 50.0
+OVERFLOW_DISTANCE_CM = 30.0
 
 
 def _get_latest_model_path(bin_id: str) -> Optional[Path]:
@@ -335,10 +335,10 @@ class BinOverflowPredictor:
         if predicted_distance <= OVERFLOW_DISTANCE_CM:
             overflow_risk = "high"
             risk_message = "Bin at or past overflow level. Schedule collection soon."
-        elif predicted_distance <= 15:
+        elif predicted_distance <= 40:
             overflow_risk = "medium"
             risk_message = "Bin filling up. Consider scheduling collection."
-        elif predicted_distance <= 30:
+        elif predicted_distance <= 50:
             overflow_risk = "low"
             risk_message = "Bin has adequate space."
         else:
@@ -397,9 +397,9 @@ class BinOverflowPredictor:
                 pred_distance = row["pred_distance_cm"]
                 if pred_distance <= OVERFLOW_DISTANCE_CM:
                     overflow_risk, risk_message = "high", "Bin at or past overflow level. Schedule collection soon."
-                elif pred_distance <= 15:
+                elif pred_distance <= 40:
                     overflow_risk, risk_message = "medium", "Bin filling up. Consider scheduling collection."
-                elif pred_distance <= 30:
+                elif pred_distance <= 50:
                     overflow_risk, risk_message = "low", "Bin has adequate space."
                 else:
                     overflow_risk, risk_message = "minimal", "Bin has plenty of space."
