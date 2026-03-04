@@ -6,9 +6,22 @@ import {
   KeyboardAvoidingView, Platform, StatusBar
 } from 'react-native';
 
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RouteProp } from '@react-navigation/native';
 import QRCode from 'react-native-qrcode-svg';
 import axios from 'axios';
 import { REGIONAL_LOCATIONS } from '../components/Tax_Areas';
+
+type TaxHouseholdStackParamList = {
+  Tax_Household: { email: string };
+  Tax: { email: string };
+};
+type CreateHouseholdScreenNavigationProp = StackNavigationProp<TaxHouseholdStackParamList, 'Tax_Household'>;
+type CreateHouseholdScreenRouteProp = RouteProp<TaxHouseholdStackParamList, 'Tax_Household'>;
+type CreateHouseholdScreenProps = {
+  navigation: CreateHouseholdScreenNavigationProp;
+  route: CreateHouseholdScreenRouteProp;
+};
 
 const COLORS = {
   primary: '#2D6A4F',
@@ -22,8 +35,16 @@ const COLORS = {
   error: '#D90429'
 };
 
-const WASTE_TYPES = ["Organic", "Inorganic", "Recyclable"];
-const WASTE_TIERS = ["Low", "Medium", "High"];
+type WasteTier = 'Low' | 'Medium' | 'High';
+type WasteDataPoint = { year: number; week: number; weight_kg: number };
+type WasteData = {
+  Organic: WasteDataPoint[];
+  Inorganic: WasteDataPoint[];
+  Recyclable: WasteDataPoint[];
+};
+
+const WASTE_TYPES: (keyof WasteData)[] = ["Organic", "Inorganic", "Recyclable"];
+const WASTE_TIERS: WasteTier[] = ["Low", "Medium", "High"];
 
 const API_BASE = getApiUrl();
 const api = axios.create({
@@ -40,7 +61,7 @@ const getCurrentDateInfo = () => {
   return { year, currentWeek };
 };
 
-export default function CreateHouseholdScreen({ navigation, route }) {
+export default function CreateHouseholdScreen({ navigation, route }: CreateHouseholdScreenProps) {
   const { email } = route.params || { email: "unknown@email.com" };
 
   const [householdId, setHouseholdId] = useState('');
@@ -49,13 +70,13 @@ export default function CreateHouseholdScreen({ navigation, route }) {
   // Initialized as empty so we can validate that the user actually picked one
   const [incomeTier, setIncomeTier] = useState('');
   const [idLoading, setIdLoading] = useState(false);
-  const qrCodeRef = useRef(null);
+  const qrCodeRef = useRef<{ toDataURL: (callback: (data: string) => void) => void } | null>(null);
 
-  const [wasteData, setWasteData] = useState({ Organic: [], Inorganic: [], Recyclable: [] });
+  const [wasteData, setWasteData] = useState<WasteData>({ Organic: [], Inorganic: [], Recyclable: [] });
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [activeTab, setActiveTab] = useState("Organic");
+  const [activeTab, setActiveTab] = useState<keyof WasteData>("Organic");
   const [loading, setLoading] = useState(false);
 
   const filteredLocations = REGIONAL_LOCATIONS.filter(item =>
@@ -79,10 +100,10 @@ export default function CreateHouseholdScreen({ navigation, route }) {
     fetchNextId();
   }, [selectedLocation]);
 
-  const generateWeights = (tier) => {
+  const generateWeights = (tier: WasteTier) => {
     if (!tier) return;
     const { year, currentWeek } = getCurrentDateInfo();
-    const newData = { Organic: [], Inorganic: [], Recyclable: [] };
+    const newData: WasteData = { Organic: [], Inorganic: [], Recyclable: [] };
     const multipliers = { Low: 0.8, Medium: 1.0, High: 1.3 };
     const mult = multipliers[tier];
 
@@ -96,15 +117,15 @@ export default function CreateHouseholdScreen({ navigation, route }) {
     setWasteData(newData);
   };
 
-  const handleWasteTierSelect = (tier) => {
+  const handleWasteTierSelect = (tier: WasteTier) => {
     setWasteTier(tier);
     setIncomeTier(tier); // UPDATED: Sets income_tier to match the selection
     generateWeights(tier);
   };
 
-  const updateWeight = (type, index, text) => {
+  const updateWeight = (type: keyof WasteData, index: number, text: string) => {
     const updatedList = [...wasteData[type]];
-    updatedList[index].weight_kg = text === '' ? '' : text;
+    updatedList[index].weight_kg = text === '' ? 0 : parseFloat(text) || 0;
     setWasteData((prev) => ({ ...prev, [type]: updatedList }));
   };
 
@@ -129,10 +150,10 @@ export default function CreateHouseholdScreen({ navigation, route }) {
       }
 
       const finalWasteData = JSON.parse(JSON.stringify(wasteData));
-      WASTE_TYPES.forEach(t => {
-        finalWasteData[t] = finalWasteData[t].map(item => ({
+      WASTE_TYPES.forEach((t: keyof WasteData) => {
+        finalWasteData[t] = finalWasteData[t].map((item: WasteDataPoint) => ({
           ...item,
-          weight_kg: item.weight_kg === '' ? 0 : parseFloat(item.weight_kg)
+          weight_kg: Number(item.weight_kg) || 0
         }));
       });
 
