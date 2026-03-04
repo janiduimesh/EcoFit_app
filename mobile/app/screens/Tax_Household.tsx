@@ -46,7 +46,8 @@ export default function CreateHouseholdScreen({ navigation, route }) {
   const [householdId, setHouseholdId] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
   const [wasteTier, setWasteTier] = useState('');
-  const [incomeTier, setIncomeTier] = useState('Medium');
+  // Initialized as empty so we can validate that the user actually picked one
+  const [incomeTier, setIncomeTier] = useState('');
   const [idLoading, setIdLoading] = useState(false);
   const qrCodeRef = useRef(null);
 
@@ -56,6 +57,7 @@ export default function CreateHouseholdScreen({ navigation, route }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [activeTab, setActiveTab] = useState("Organic");
   const [loading, setLoading] = useState(false);
+
   const filteredLocations = REGIONAL_LOCATIONS.filter(item =>
     item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.district.toLowerCase().includes(searchQuery.toLowerCase())
@@ -96,6 +98,7 @@ export default function CreateHouseholdScreen({ navigation, route }) {
 
   const handleWasteTierSelect = (tier) => {
     setWasteTier(tier);
+    setIncomeTier(tier); // UPDATED: Sets income_tier to match the selection
     generateWeights(tier);
   };
 
@@ -106,10 +109,17 @@ export default function CreateHouseholdScreen({ navigation, route }) {
   };
 
   const handleSubmit = async () => {
+    // UPDATED: Added validation for tier selection
+    if (!wasteTier) {
+      Alert.alert("Selection Required", "Please select a Waste Generation Tier before submitting.");
+      return;
+    }
+
     if (!householdId || householdId === "..." || householdId === "Error") {
       Alert.alert("Error", "Please wait for a valid Household ID.");
       return;
     }
+
     setLoading(true);
     try {
       let qrBase64String = "";
@@ -127,8 +137,11 @@ export default function CreateHouseholdScreen({ navigation, route }) {
       });
 
       const payload = {
-        email, household_id: householdId, income_tier: incomeTier,
-        waste_data: finalWasteData, qr_code: qrBase64String || "placeholder"
+        email,
+        household_id: householdId,
+        income_tier: incomeTier, // Will now be 'Low', 'Medium', or 'High'
+        waste_data: finalWasteData,
+        qr_code: qrBase64String || "placeholder"
       };
 
       const response = await api.post('/create_user', payload);

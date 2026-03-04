@@ -187,6 +187,45 @@ async def get_weeks(household_id: str):
             "waste_data": result}
 
 
+# tax_routes.py
+
+@router.get("/household/profile_extended/{household_id}")
+async def get_household_profile_extended(household_id: str):
+    db = get_database()
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database connection not ready")
+
+    # Fetch profile
+    household = await db.households_col.find_one({"_id": household_id})
+    if not household:
+        raise HTTPException(status_code=404, detail="Household profile not found")
+
+    # Calculate averages for each waste type
+    averages = {}
+    waste_types = ["Organic", "Recyclable", "Inorganic"]
+
+    for wtype in waste_types:
+        record = await db.history_col.find_one({
+            "household_id": household_id,
+            "waste_type": wtype
+        })
+
+        if record and "weeks" in record and len(record["weeks"]) > 0:
+            weights = [w["weight_kg"] for w in record["weeks"]]
+            avg = sum(weights) / len(weights)
+            averages[wtype] = round(avg, 2)
+        else:
+            averages[wtype] = 0.0
+
+    return {
+        "profile": {
+            "household_id": household.get("_id"),
+            "linked_email": household.get("linked_email", "N/A"),
+            "income_tier": household.get("income_tier", "Unknown"),
+            "qr_code": household.get("qr_code", ""),
+        },
+        "averages": averages
+    }
 
 @router.post("/process_weekly_waste", response_model=DashboardResponse)
 async def process_weekly_waste(data: PredictNextRequest):
