@@ -56,44 +56,75 @@ async def fetch_training_data(settings, bin_id: str) -> list:
     logger.info(f"Fetched {len(data)} records for {bin_id} from last {DATA_LOOKBACK_DAYS} days")
     return data
 
-
 def prepare_features(data: list) -> pd.DataFrame:
-    """Build features for training: distance_cm lags, rolling mean/std, dow (matches overflow_predictor)."""
-    logger.info("[Features] Preparing features...")
-    
     df = pd.DataFrame(data)
-    
-    if df.empty:
-        raise ValueError("No data available for training")
-    
-    if 'distance_cm' not in df.columns:
-        raise ValueError("Training data must include 'distance_cm' (e.g. from organic bin collection)")
-    
+    if df.empty or 'distance_cm' not in df.columns:
+        raise ValueError("No distance_cm data available")
+
     df['recorded_at'] = pd.to_datetime(df['recorded_at'])
-    df = df.set_index('recorded_at')
-    df = df.sort_index()
-    
-    # Day of week (same as predictor's 'dow')
+    df = df.set_index('recorded_at').sort_index()
+
+    df = df[['distance_cm']].astype(float).resample('D').mean()
+    df['distance_cm'] = df['distance_cm'].interpolate(limit_direction='both')
+
     df['dow'] = df.index.dayofweek
-    
-    # Distance lags: preceding 1, 2, 3, 7, 14 days
+
     for lag in [1, 2, 3, 7, 14]:
         df[f'distance_cm_lag_{lag}'] = df['distance_cm'].shift(lag)
-    
-    # Rolling mean and std over 3, 7, 14 days (same names as trained model)
-    df['distance_cm_roll_mean_3'] = df['distance_cm'].rolling(3, min_periods=1).mean()
-    df['distance_cm_roll_std_3'] = df['distance_cm'].rolling(3, min_periods=1).std()
-    df['distance_cm_roll_mean_7'] = df['distance_cm'].rolling(7, min_periods=1).mean()
-    df['distance_cm_roll_std_7'] = df['distance_cm'].rolling(7, min_periods=1).std()
-    df['distance_cm_roll_mean_14'] = df['distance_cm'].rolling(14, min_periods=1).mean()
-    df['distance_cm_roll_std_14'] = df['distance_cm'].rolling(14, min_periods=1).std()
-    
-    # Fill NaN from lags/rolling (std is NaN for single value)
-    df = df.fillna(method='bfill').fillna(0)
-    df = df.dropna()
-    
-    logger.info(f"   Prepared {len(df)} samples with {len(df.columns)} features")
+
+    for w in [3, 7, 14]:
+        df[f'distance_cm_roll_mean_{w}'] = df['distance_cm'].rolling(w, min_periods=1).mean().shift(1)
+        df[f'distance_cm_roll_std_{w}']  = df['distance_cm'].rolling(w, min_periods=2).std().shift(1)
+
+    need = [f'distance_cm_lag_{lag}' for lag in [1,2,3,7,14]]
+    df = df.dropna(subset=need)
+
+    df = df.ffill().fillna(0)
+
+    # ✅ next-day target
+    df["target_next_distance"] = df["distance_cm"].shift(-1)
+    df = df.dropna(subset=["target_next_distance"])
+
     return df
+
+
+# def prepare_features(data: list) -> pd.DataFrame:
+#     """Build features for training: distance_cm lags, rolling mean/std, dow (matches overflow_predictor)."""
+#     logger.info("[Features] Preparing features...")
+    
+#     df = pd.DataFrame(data)
+    
+#     if df.empty:
+#         raise ValueError("No data available for training")
+    
+#     if 'distance_cm' not in df.columns:
+#         raise ValueError("Training data must include 'distance_cm' (e.g. from organic bin collection)")
+    
+#     df['recorded_at'] = pd.to_datetime(df['recorded_at'])
+#     df = df.set_index('recorded_at')
+#     df = df.sort_index()
+    
+#     # Day of week (same as predictor's 'dow')
+#     df['dow'] = df.index.dayofweek
+    
+#     # Distance lags: preceding 1, 2, 3, 7, 14 days
+#     for lag in [1, 2, 3, 7, 14]:
+#         df[f'distance_cm_lag_{lag}'] = df['distance_cm'].shift(lag)
+    
+#     # Rolling mean and std over 3, 7, 14 days (same names as trained model)
+#     df['distance_cm_roll_mean_3'] = df['distance_cm'].rolling(3, min_periods=1).mean()
+#     df['distance_cm_roll_std_3'] = df['distance_cm'].rolling(3, min_periods=1).std()
+#     df['distance_cm_roll_mean_7'] = df['distance_cm'].rolling(7, min_periods=1).mean()
+#     df['distance_cm_roll_std_7'] = df['distance_cm'].rolling(7, min_periods=1).std()
+#     df['distance_cm_roll_mean_14'] = df['distance_cm'].rolling(14, min_periods=1).mean()
+#     df['distance_cm_roll_std_14'] = df['distance_cm'].rolling(14, min_periods=1).std()
+    
+#     # Fill NaN from lags/rolling (std is NaN for single value)
+#     df = df.fillna(method='bfill').fillna(0)
+#     df = df.dropna()
+    
+#     logger.info(f"   Prepared {len(df)} samples with {len(df.columns)} features")
+#     return df
 
 
 def get_feature_columns() -> list:
@@ -122,7 +153,7 @@ def train_model(df: pd.DataFrame):
     available_cols = [col for col in feature_cols if col in df.columns]
     
     X = df[available_cols]
-    y = df['distance_cm']
+    y = df['target_next_distance']
     
     logger.info(f"   Using {len(available_cols)} features: {available_cols}")
     logger.info(f"   Training samples: {len(X)}")
