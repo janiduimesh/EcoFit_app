@@ -479,3 +479,229 @@
 2026-03-02 21:51:56,205 - __main__ - INFO - ============================================================
 2026-03-02 21:51:56,205 - __main__ - INFO - [OK] Retraining completed. Trained 5/5 bins in 25.0s
 2026-03-02 21:51:56,205 - __main__ - INFO - ============================================================
+2026-03-02 23:18:59,020 - __main__ - INFO - ============================================================
+2026-03-02 23:18:59,020 - __main__ - INFO - [Start] Starting Bin Overflow Prediction Model Retraining (all bins)
+2026-03-02 23:18:59,020 - __main__ - INFO -    Bins: ['blue_bin', 'yellow_bin', 'green_bin', 'black_bin', 'red_bin']
+2026-03-02 23:18:59,020 - __main__ - INFO -    Time: 2026-03-02T17:48:59.020965
+2026-03-02 23:18:59,020 - __main__ - INFO - ============================================================
+2026-03-02 23:18:59,279 - __main__ - INFO - --- Training bin_id=blue_bin ---
+2026-03-02 23:18:59,279 - __main__ - INFO - [Data] Connecting to MongoDB...
+2026-03-02 23:19:01,270 - __main__ - INFO - Fetched 96 records for blue_bin from last 60 days
+2026-03-02 23:19:02,936 - __main__ - INFO - [Training] Training model...
+2026-03-02 23:19:02,938 - __main__ - INFO -    Using 12 features: ['distance_cm_lag_1', 'distance_cm_lag_2', 'distance_cm_lag_3', 'distance_cm_lag_7', 'distance_cm_lag_14', 'distance_cm_roll_mean_3', 'distance_cm_roll_std_3', 'distance_cm_roll_mean_7', 'distance_cm_roll_std_7', 'distance_cm_roll_mean_14', 'distance_cm_roll_std_14', 'dow']
+2026-03-02 23:19:02,938 - __main__ - INFO -    Training samples: 45
+2026-03-02 23:19:03,552 - __main__ - INFO -    Fold 1: MAE=13.91, RMSE=16.68, R²=0.161
+2026-03-02 23:19:04,098 - __main__ - INFO -    Fold 2: MAE=14.70, RMSE=16.64, R²=-0.960
+2026-03-02 23:19:04,673 - __main__ - INFO -    Fold 3: MAE=12.03, RMSE=16.62, R²=-1.845
+2026-03-02 23:19:04,673 - __main__ - INFO -    Cross-validation results:
+2026-03-02 23:19:04,673 - __main__ - INFO -    - MAE: 13.55 ± 1.12
+2026-03-02 23:19:04,673 - __main__ - INFO -    - RMSE: 16.65 ± 0.03
+2026-03-02 23:19:04,675 - __main__ - INFO -    - R²: -0.881 ± 0.821
+2026-03-02 23:19:05,266 - __main__ - INFO -    Top 5 important features:
+2026-03-02 23:19:05,266 - __main__ - INFO -      - distance_cm_lag_1: 0.589
+2026-03-02 23:19:05,266 - __main__ - INFO -      - distance_cm_lag_2: 0.085
+2026-03-02 23:19:05,266 - __main__ - INFO -      - distance_cm_lag_14: 0.078
+2026-03-02 23:19:05,266 - __main__ - INFO -      - distance_cm_roll_mean_3: 0.055
+2026-03-02 23:19:05,266 - __main__ - INFO -      - distance_cm_roll_std_14: 0.045
+2026-03-02 23:19:05,399 - __main__ - INFO - [Save] Model saved to C:\Users\HP\Documents\my\res\EcoFit_app\backend\waste-classification\model\overflow\lag_model_random_blue_bin_20260302_174905.pkl
+2026-03-02 23:19:05,400 - __main__ - INFO - [Save] Removed previous model lag_model_random_blue_bin_20260302_162138.pkl
+2026-03-02 23:19:05,400 - __main__ - INFO - --- Training bin_id=yellow_bin ---
+2026-03-02 23:19:05,400 - __main__ - INFO - [Data] Connecting to MongoDB...
+2026-03-02 23:19:07,336 - __main__ - INFO - Fetched 59 records for yellow_bin from last 60 days
+2026-03-02 23:19:07,363 - __main__ - INFO - [Training] Training model...
+2026-03-02 23:19:07,367 - __main__ - INFO -    Using 12 features: ['distance_cm_lag_1', 'distance_cm_lag_2', 'distance_cm_lag_3', 'distance_cm_lag_7', 'distance_cm_lag_14', 'distance_cm_roll_mean_3', 'distance_cm_roll_std_3', 'distance_cm_roll_mean_7', 'distance_cm_roll_std_7', 'distance_cm_roll_mean_14', 'distance_cm_roll_std_14', 'dow']
+2026-03-02 23:19:07,367 - __main__ - INFO -    Training samples: 45
+2026-03-02 23:19:07,891 - __main__ - INFO -    Fold 1: MAE=8.98, RMSE=11.01, R²=-0.456
+2026-03-02 23:19:08,559 - __main__ - INFO -    Fold 2: MAE=7.66, RMSE=11.61, R²=0.764
+2026-03-02 23:19:09,049 - __main__ - INFO -    Fold 3: MAE=11.89, RMSE=27.82, R²=-0.015
+2026-03-02 23:19:09,049 - __main__ - INFO -    Cross-validation results:
+2026-03-02 23:19:09,049 - __main__ - INFO -    - MAE: 9.51 ± 1.77
+2026-03-02 23:19:09,049 - __main__ - INFO -    - RMSE: 16.81 ± 7.79
+2026-03-02 23:19:09,049 - __main__ - INFO -    - R²: 0.097 ± 0.504
+2026-03-02 23:19:09,522 - __main__ - INFO -    Top 5 important features:
+2026-03-02 23:19:09,522 - __main__ - INFO -      - distance_cm_lag_7: 0.781
+2026-03-02 23:19:09,526 - __main__ - INFO -      - distance_cm_lag_1: 0.037
+2026-03-02 23:19:09,526 - __main__ - INFO -      - distance_cm_roll_mean_7: 0.029
+2026-03-02 23:19:09,526 - __main__ - INFO -      - distance_cm_lag_14: 0.026
+2026-03-02 23:19:09,526 - __main__ - INFO -      - distance_cm_lag_3: 0.024
+2026-03-02 23:19:09,608 - __main__ - INFO - [Save] Model saved to C:\Users\HP\Documents\my\res\EcoFit_app\backend\waste-classification\model\overflow\lag_model_random_yellow_bin_20260302_174909.pkl
+2026-03-02 23:19:09,613 - __main__ - INFO - [Save] Removed previous model lag_model_random_yellow_bin_20260302_162142.pkl
+2026-03-02 23:19:09,613 - __main__ - INFO - --- Training bin_id=green_bin ---
+2026-03-02 23:19:09,613 - __main__ - INFO - [Data] Connecting to MongoDB...
+2026-03-02 23:19:11,447 - __main__ - INFO - Fetched 84 records for green_bin from last 60 days
+2026-03-02 23:19:11,464 - __main__ - INFO - [Training] Training model...
+2026-03-02 23:19:11,469 - __main__ - INFO -    Using 12 features: ['distance_cm_lag_1', 'distance_cm_lag_2', 'distance_cm_lag_3', 'distance_cm_lag_7', 'distance_cm_lag_14', 'distance_cm_roll_mean_3', 'distance_cm_roll_std_3', 'distance_cm_roll_mean_7', 'distance_cm_roll_std_7', 'distance_cm_roll_mean_14', 'distance_cm_roll_std_14', 'dow']
+2026-03-02 23:19:11,469 - __main__ - INFO -    Training samples: 45
+2026-03-02 23:19:12,011 - __main__ - INFO -    Fold 1: MAE=34.79, RMSE=39.92, R²=-0.285
+2026-03-02 23:19:12,502 - __main__ - INFO -    Fold 2: MAE=30.20, RMSE=36.60, R²=-0.888
+2026-03-02 23:19:12,976 - __main__ - INFO -    Fold 3: MAE=4.05, RMSE=5.17, R²=0.944
+2026-03-02 23:19:12,976 - __main__ - INFO -    Cross-validation results:
+2026-03-02 23:19:12,980 - __main__ - INFO -    - MAE: 23.02 ± 13.54
+2026-03-02 23:19:12,980 - __main__ - INFO -    - RMSE: 27.23 ± 15.66
+2026-03-02 23:19:12,980 - __main__ - INFO -    - R²: -0.076 ± 0.763
+2026-03-02 23:19:13,477 - __main__ - INFO -    Top 5 important features:
+2026-03-02 23:19:13,477 - __main__ - INFO -      - distance_cm_lag_1: 0.360
+2026-03-02 23:19:13,482 - __main__ - INFO -      - distance_cm_lag_7: 0.134
+2026-03-02 23:19:13,482 - __main__ - INFO -      - distance_cm_lag_3: 0.100
+2026-03-02 23:19:13,482 - __main__ - INFO -      - distance_cm_roll_mean_14: 0.098
+2026-03-02 23:19:13,482 - __main__ - INFO -      - distance_cm_lag_14: 0.078
+2026-03-02 23:19:13,581 - __main__ - INFO - [Save] Model saved to C:\Users\HP\Documents\my\res\EcoFit_app\backend\waste-classification\model\overflow\lag_model_random_green_bin_20260302_174913.pkl
+2026-03-02 23:19:13,581 - __main__ - INFO - [Save] Removed previous model lag_model_random_green_bin_20260302_162147.pkl
+2026-03-02 23:19:13,581 - __main__ - INFO - --- Training bin_id=black_bin ---
+2026-03-02 23:19:13,581 - __main__ - INFO - [Data] Connecting to MongoDB...
+2026-03-02 23:19:15,436 - __main__ - INFO - Fetched 97 records for black_bin from last 60 days
+2026-03-02 23:19:15,459 - __main__ - INFO - [Training] Training model...
+2026-03-02 23:19:15,459 - __main__ - INFO -    Using 12 features: ['distance_cm_lag_1', 'distance_cm_lag_2', 'distance_cm_lag_3', 'distance_cm_lag_7', 'distance_cm_lag_14', 'distance_cm_roll_mean_3', 'distance_cm_roll_std_3', 'distance_cm_roll_mean_7', 'distance_cm_roll_std_7', 'distance_cm_roll_mean_14', 'distance_cm_roll_std_14', 'dow']
+2026-03-02 23:19:15,459 - __main__ - INFO -    Training samples: 45
+2026-03-02 23:19:16,043 - __main__ - INFO -    Fold 1: MAE=4.93, RMSE=5.40, R²=-5.182
+2026-03-02 23:19:16,586 - __main__ - INFO -    Fold 2: MAE=2.51, RMSE=3.27, R²=-4.094
+2026-03-02 23:19:17,108 - __main__ - INFO -    Fold 3: MAE=4.40, RMSE=4.67, R²=-8.311
+2026-03-02 23:19:17,110 - __main__ - INFO -    Cross-validation results:
+2026-03-02 23:19:17,110 - __main__ - INFO -    - MAE: 3.95 ± 1.04
+2026-03-02 23:19:17,110 - __main__ - INFO -    - RMSE: 4.45 ± 0.88
+2026-03-02 23:19:17,110 - __main__ - INFO -    - R²: -5.862 ± 1.787
+2026-03-02 23:19:17,669 - __main__ - INFO -    Top 5 important features:
+2026-03-02 23:19:17,669 - __main__ - INFO -      - distance_cm_lag_1: 0.568
+2026-03-02 23:19:17,669 - __main__ - INFO -      - distance_cm_lag_2: 0.090
+2026-03-02 23:19:17,669 - __main__ - INFO -      - distance_cm_roll_mean_3: 0.060
+2026-03-02 23:19:17,669 - __main__ - INFO -      - distance_cm_lag_3: 0.058
+2026-03-02 23:19:17,669 - __main__ - INFO -      - distance_cm_roll_std_14: 0.048
+2026-03-02 23:19:17,883 - __main__ - INFO - [Save] Model saved to C:\Users\HP\Documents\my\res\EcoFit_app\backend\waste-classification\model\overflow\lag_model_random_black_bin_20260302_174917.pkl
+2026-03-02 23:19:17,883 - __main__ - INFO - [Save] Removed previous model lag_model_random_black_bin_20260302_162151.pkl
+2026-03-02 23:19:17,883 - __main__ - INFO - --- Training bin_id=red_bin ---
+2026-03-02 23:19:17,883 - __main__ - INFO - [Data] Connecting to MongoDB...
+2026-03-02 23:19:19,806 - __main__ - INFO - Fetched 96 records for red_bin from last 60 days
+2026-03-02 23:19:19,823 - __main__ - INFO - [Training] Training model...
+2026-03-02 23:19:19,825 - __main__ - INFO -    Using 12 features: ['distance_cm_lag_1', 'distance_cm_lag_2', 'distance_cm_lag_3', 'distance_cm_lag_7', 'distance_cm_lag_14', 'distance_cm_roll_mean_3', 'distance_cm_roll_std_3', 'distance_cm_roll_mean_7', 'distance_cm_roll_std_7', 'distance_cm_roll_mean_14', 'distance_cm_roll_std_14', 'dow']
+2026-03-02 23:19:19,825 - __main__ - INFO -    Training samples: 45
+2026-03-02 23:19:20,339 - __main__ - INFO -    Fold 1: MAE=10.42, RMSE=11.38, R²=-5.817
+2026-03-02 23:19:20,850 - __main__ - INFO -    Fold 2: MAE=6.02, RMSE=7.45, R²=-0.548
+2026-03-02 23:19:21,327 - __main__ - INFO -    Fold 3: MAE=14.12, RMSE=15.61, R²=-3.983
+2026-03-02 23:19:21,327 - __main__ - INFO -    Cross-validation results:
+2026-03-02 23:19:21,327 - __main__ - INFO -    - MAE: 10.18 ± 3.31
+2026-03-02 23:19:21,332 - __main__ - INFO -    - RMSE: 11.48 ± 3.33
+2026-03-02 23:19:21,332 - __main__ - INFO -    - R²: -3.449 ± 2.184
+2026-03-02 23:19:21,880 - __main__ - INFO -    Top 5 important features:
+2026-03-02 23:19:21,880 - __main__ - INFO -      - distance_cm_lag_14: 0.279
+2026-03-02 23:19:21,884 - __main__ - INFO -      - distance_cm_roll_mean_14: 0.265
+2026-03-02 23:19:21,884 - __main__ - INFO -      - distance_cm_lag_1: 0.104
+2026-03-02 23:19:21,884 - __main__ - INFO -      - distance_cm_roll_mean_3: 0.099
+2026-03-02 23:19:21,884 - __main__ - INFO -      - distance_cm_roll_mean_7: 0.068
+2026-03-02 23:19:22,009 - __main__ - INFO - [Save] Model saved to C:\Users\HP\Documents\my\res\EcoFit_app\backend\waste-classification\model\overflow\lag_model_random_red_bin_20260302_174921.pkl
+2026-03-02 23:19:22,010 - __main__ - INFO - [Save] Removed previous model lag_model_random_red_bin_20260302_162156.pkl
+2026-03-02 23:19:22,010 - __main__ - INFO - ============================================================
+2026-03-02 23:19:22,010 - __main__ - INFO - [OK] Retraining completed. Trained 5/5 bins in 23.0s
+2026-03-02 23:19:22,010 - __main__ - INFO - ============================================================
+2026-03-02 23:45:12,991 - __main__ - INFO - ============================================================
+2026-03-02 23:45:12,991 - __main__ - INFO - [Start] Starting Bin Overflow Prediction Model Retraining (all bins)
+2026-03-02 23:45:12,991 - __main__ - INFO -    Bins: ['blue_bin', 'yellow_bin', 'green_bin', 'black_bin', 'red_bin']
+2026-03-02 23:45:12,991 - __main__ - INFO -    Time: 2026-03-02T18:15:12.991743
+2026-03-02 23:45:12,997 - __main__ - INFO - ============================================================
+2026-03-02 23:45:13,146 - __main__ - INFO - --- Training bin_id=blue_bin ---
+2026-03-02 23:45:13,151 - __main__ - INFO - [Data] Connecting to MongoDB...
+2026-03-02 23:45:15,437 - __main__ - INFO - Fetched 96 records for blue_bin from last 60 days
+2026-03-02 23:45:16,642 - __main__ - INFO - [Training] Training model...
+2026-03-02 23:45:16,642 - __main__ - INFO -    Using 12 features: ['distance_cm_lag_1', 'distance_cm_lag_2', 'distance_cm_lag_3', 'distance_cm_lag_7', 'distance_cm_lag_14', 'distance_cm_roll_mean_3', 'distance_cm_roll_std_3', 'distance_cm_roll_mean_7', 'distance_cm_roll_std_7', 'distance_cm_roll_mean_14', 'distance_cm_roll_std_14', 'dow']
+2026-03-02 23:45:16,642 - __main__ - INFO -    Training samples: 44
+2026-03-02 23:45:17,163 - __main__ - INFO -    Fold 1: MAE=14.10, RMSE=16.31, R²=0.198
+2026-03-02 23:45:17,705 - __main__ - INFO -    Fold 2: MAE=15.15, RMSE=17.89, R²=-1.265
+2026-03-02 23:45:18,240 - __main__ - INFO -    Fold 3: MAE=16.78, RMSE=20.54, R²=-3.346
+2026-03-02 23:45:18,240 - __main__ - INFO -    Cross-validation results:
+2026-03-02 23:45:18,244 - __main__ - INFO -    - MAE: 15.34 ± 1.10
+2026-03-02 23:45:18,244 - __main__ - INFO -    - RMSE: 18.25 ± 1.74
+2026-03-02 23:45:18,244 - __main__ - INFO -    - R²: -1.471 ± 1.454
+2026-03-02 23:45:18,685 - __main__ - INFO -    Top 5 important features:
+2026-03-02 23:45:18,685 - __main__ - INFO -      - distance_cm_lag_1: 0.379
+2026-03-02 23:45:18,685 - __main__ - INFO -      - distance_cm_lag_14: 0.245
+2026-03-02 23:45:18,685 - __main__ - INFO -      - distance_cm_roll_std_14: 0.076
+2026-03-02 23:45:18,685 - __main__ - INFO -      - distance_cm_roll_mean_14: 0.073
+2026-03-02 23:45:18,685 - __main__ - INFO -      - distance_cm_lag_2: 0.045
+2026-03-02 23:45:18,761 - __main__ - INFO - [Save] Model saved to C:\Users\HP\Documents\my\res\EcoFit_app\backend\waste-classification\model\overflow\lag_model_random_blue_bin_20260302_181518.pkl
+2026-03-02 23:45:18,773 - __main__ - INFO - [Save] Removed previous model lag_model_random_blue_bin_20260302_174905.pkl
+2026-03-02 23:45:18,773 - __main__ - INFO - --- Training bin_id=yellow_bin ---
+2026-03-02 23:45:18,773 - __main__ - INFO - [Data] Connecting to MongoDB...
+2026-03-02 23:45:20,556 - __main__ - INFO - Fetched 59 records for yellow_bin from last 60 days
+2026-03-02 23:45:20,581 - __main__ - INFO - [Training] Training model...
+2026-03-02 23:45:20,585 - __main__ - INFO -    Using 12 features: ['distance_cm_lag_1', 'distance_cm_lag_2', 'distance_cm_lag_3', 'distance_cm_lag_7', 'distance_cm_lag_14', 'distance_cm_roll_mean_3', 'distance_cm_roll_std_3', 'distance_cm_roll_mean_7', 'distance_cm_roll_std_7', 'distance_cm_roll_mean_14', 'distance_cm_roll_std_14', 'dow']
+2026-03-02 23:45:20,585 - __main__ - INFO -    Training samples: 44
+2026-03-02 23:45:21,112 - __main__ - INFO -    Fold 1: MAE=8.06, RMSE=9.78, R²=-0.149
+2026-03-02 23:45:21,594 - __main__ - INFO -    Fold 2: MAE=7.42, RMSE=12.78, R²=0.713
+2026-03-02 23:45:22,047 - __main__ - INFO -    Fold 3: MAE=13.89, RMSE=28.73, R²=-0.082
+2026-03-02 23:45:22,047 - __main__ - INFO -    Cross-validation results:
+2026-03-02 23:45:22,049 - __main__ - INFO -    - MAE: 9.79 ± 2.91
+2026-03-02 23:45:22,049 - __main__ - INFO -    - RMSE: 17.10 ± 8.31
+2026-03-02 23:45:22,049 - __main__ - INFO -    - R²: 0.161 ± 0.392
+2026-03-02 23:45:22,506 - __main__ - INFO -    Top 5 important features:
+2026-03-02 23:45:22,508 - __main__ - INFO -      - distance_cm_lag_7: 0.765
+2026-03-02 23:45:22,508 - __main__ - INFO -      - distance_cm_roll_mean_14: 0.048
+2026-03-02 23:45:22,508 - __main__ - INFO -      - distance_cm_lag_14: 0.038
+2026-03-02 23:45:22,511 - __main__ - INFO -      - distance_cm_lag_3: 0.031
+2026-03-02 23:45:22,511 - __main__ - INFO -      - distance_cm_roll_mean_7: 0.026
+2026-03-02 23:45:22,618 - __main__ - INFO - [Save] Model saved to C:\Users\HP\Documents\my\res\EcoFit_app\backend\waste-classification\model\overflow\lag_model_random_yellow_bin_20260302_181522.pkl
+2026-03-02 23:45:22,618 - __main__ - INFO - [Save] Removed previous model lag_model_random_yellow_bin_20260302_174909.pkl
+2026-03-02 23:45:22,618 - __main__ - INFO - --- Training bin_id=green_bin ---
+2026-03-02 23:45:22,618 - __main__ - INFO - [Data] Connecting to MongoDB...
+2026-03-02 23:45:24,427 - __main__ - INFO - Fetched 84 records for green_bin from last 60 days
+2026-03-02 23:45:24,452 - __main__ - INFO - [Training] Training model...
+2026-03-02 23:45:24,452 - __main__ - INFO -    Using 12 features: ['distance_cm_lag_1', 'distance_cm_lag_2', 'distance_cm_lag_3', 'distance_cm_lag_7', 'distance_cm_lag_14', 'distance_cm_roll_mean_3', 'distance_cm_roll_std_3', 'distance_cm_roll_mean_7', 'distance_cm_roll_std_7', 'distance_cm_roll_mean_14', 'distance_cm_roll_std_14', 'dow']
+2026-03-02 23:45:24,452 - __main__ - INFO -    Training samples: 44
+2026-03-02 23:45:24,982 - __main__ - INFO -    Fold 1: MAE=35.36, RMSE=36.96, R²=-0.102
+2026-03-02 23:45:25,570 - __main__ - INFO -    Fold 2: MAE=32.21, RMSE=41.15, R²=-1.387
+2026-03-02 23:45:26,008 - __main__ - INFO -    Fold 3: MAE=3.34, RMSE=4.27, R²=0.962
+2026-03-02 23:45:26,008 - __main__ - INFO -    Cross-validation results:
+2026-03-02 23:45:26,012 - __main__ - INFO -    - MAE: 23.63 ± 14.41
+2026-03-02 23:45:26,012 - __main__ - INFO -    - RMSE: 27.46 ± 16.49
+2026-03-02 23:45:26,012 - __main__ - INFO -    - R²: -0.175 ± 0.960
+2026-03-02 23:45:26,442 - __main__ - INFO -    Top 5 important features:
+2026-03-02 23:45:26,442 - __main__ - INFO -      - distance_cm_roll_mean_14: 0.212
+2026-03-02 23:45:26,442 - __main__ - INFO -      - distance_cm_lag_1: 0.171
+2026-03-02 23:45:26,442 - __main__ - INFO -      - distance_cm_lag_3: 0.167
+2026-03-02 23:45:26,442 - __main__ - INFO -      - distance_cm_lag_7: 0.134
+2026-03-02 23:45:26,442 - __main__ - INFO -      - distance_cm_roll_mean_7: 0.089
+2026-03-02 23:45:26,588 - __main__ - INFO - [Save] Model saved to C:\Users\HP\Documents\my\res\EcoFit_app\backend\waste-classification\model\overflow\lag_model_random_green_bin_20260302_181526.pkl
+2026-03-02 23:45:26,588 - __main__ - INFO - [Save] Removed previous model lag_model_random_green_bin_20260302_174913.pkl
+2026-03-02 23:45:26,590 - __main__ - INFO - --- Training bin_id=black_bin ---
+2026-03-02 23:45:26,591 - __main__ - INFO - [Data] Connecting to MongoDB...
+2026-03-02 23:45:28,286 - __main__ - INFO - Fetched 97 records for black_bin from last 60 days
+2026-03-02 23:45:28,301 - __main__ - INFO - [Training] Training model...
+2026-03-02 23:45:28,303 - __main__ - INFO -    Using 12 features: ['distance_cm_lag_1', 'distance_cm_lag_2', 'distance_cm_lag_3', 'distance_cm_lag_7', 'distance_cm_lag_14', 'distance_cm_roll_mean_3', 'distance_cm_roll_std_3', 'distance_cm_roll_mean_7', 'distance_cm_roll_std_7', 'distance_cm_roll_mean_14', 'distance_cm_roll_std_14', 'dow']
+2026-03-02 23:45:28,303 - __main__ - INFO -    Training samples: 44
+2026-03-02 23:45:28,872 - __main__ - INFO -    Fold 1: MAE=4.94, RMSE=5.41, R²=-5.207
+2026-03-02 23:45:29,456 - __main__ - INFO -    Fold 2: MAE=2.93, RMSE=3.72, R²=-5.586
+2026-03-02 23:45:30,044 - __main__ - INFO -    Fold 3: MAE=5.07, RMSE=5.46, R²=-11.745
+2026-03-02 23:45:30,044 - __main__ - INFO -    Cross-validation results:
+2026-03-02 23:45:30,048 - __main__ - INFO -    - MAE: 4.31 ± 0.98
+2026-03-02 23:45:30,048 - __main__ - INFO -    - RMSE: 4.86 ± 0.81
+2026-03-02 23:45:30,048 - __main__ - INFO -    - R²: -7.513 ± 2.997
+2026-03-02 23:45:30,664 - __main__ - INFO -    Top 5 important features:
+2026-03-02 23:45:30,667 - __main__ - INFO -      - distance_cm_lag_1: 0.470
+2026-03-02 23:45:30,667 - __main__ - INFO -      - distance_cm_lag_2: 0.100
+2026-03-02 23:45:30,667 - __main__ - INFO -      - distance_cm_roll_std_14: 0.087
+2026-03-02 23:45:30,667 - __main__ - INFO -      - distance_cm_lag_3: 0.067
+2026-03-02 23:45:30,667 - __main__ - INFO -      - distance_cm_roll_std_7: 0.055
+2026-03-02 23:45:30,826 - __main__ - INFO - [Save] Model saved to C:\Users\HP\Documents\my\res\EcoFit_app\backend\waste-classification\model\overflow\lag_model_random_black_bin_20260302_181530.pkl
+2026-03-02 23:45:30,826 - __main__ - INFO - [Save] Removed previous model lag_model_random_black_bin_20260302_174917.pkl
+2026-03-02 23:45:30,826 - __main__ - INFO - --- Training bin_id=red_bin ---
+2026-03-02 23:45:30,826 - __main__ - INFO - [Data] Connecting to MongoDB...
+2026-03-02 23:45:32,510 - __main__ - INFO - Fetched 96 records for red_bin from last 60 days
+2026-03-02 23:45:32,528 - __main__ - INFO - [Training] Training model...
+2026-03-02 23:45:32,530 - __main__ - INFO -    Using 12 features: ['distance_cm_lag_1', 'distance_cm_lag_2', 'distance_cm_lag_3', 'distance_cm_lag_7', 'distance_cm_lag_14', 'distance_cm_roll_mean_3', 'distance_cm_roll_std_3', 'distance_cm_roll_mean_7', 'distance_cm_roll_std_7', 'distance_cm_roll_mean_14', 'distance_cm_roll_std_14', 'dow']
+2026-03-02 23:45:32,530 - __main__ - INFO -    Training samples: 44
+2026-03-02 23:45:33,055 - __main__ - INFO -    Fold 1: MAE=10.23, RMSE=11.20, R²=-5.612
+2026-03-02 23:45:33,545 - __main__ - INFO -    Fold 2: MAE=6.47, RMSE=7.75, R²=-0.673
+2026-03-02 23:45:34,077 - __main__ - INFO -    Fold 3: MAE=14.39, RMSE=15.94, R²=-4.195
+2026-03-02 23:45:34,077 - __main__ - INFO -    Cross-validation results:
+2026-03-02 23:45:34,081 - __main__ - INFO -    - MAE: 10.37 ± 3.23
+2026-03-02 23:45:34,081 - __main__ - INFO -    - RMSE: 11.63 ± 3.36
+2026-03-02 23:45:34,081 - __main__ - INFO -    - R²: -3.493 ± 2.076
+2026-03-02 23:45:34,648 - __main__ - INFO -    Top 5 important features:
+2026-03-02 23:45:34,648 - __main__ - INFO -      - distance_cm_roll_mean_14: 0.335
+2026-03-02 23:45:34,648 - __main__ - INFO -      - distance_cm_lag_14: 0.329
+2026-03-02 23:45:34,648 - __main__ - INFO -      - distance_cm_lag_1: 0.064
+2026-03-02 23:45:34,648 - __main__ - INFO -      - distance_cm_roll_mean_3: 0.057
+2026-03-02 23:45:34,648 - __main__ - INFO -      - distance_cm_roll_mean_7: 0.045
+2026-03-02 23:45:34,763 - __main__ - INFO - [Save] Model saved to C:\Users\HP\Documents\my\res\EcoFit_app\backend\waste-classification\model\overflow\lag_model_random_red_bin_20260302_181534.pkl
+2026-03-02 23:45:34,765 - __main__ - INFO - [Save] Removed previous model lag_model_random_red_bin_20260302_174921.pkl
+2026-03-02 23:45:34,767 - __main__ - INFO - ============================================================
+2026-03-02 23:45:34,767 - __main__ - INFO - [OK] Retraining completed. Trained 5/5 bins in 21.8s
+2026-03-02 23:45:34,767 - __main__ - INFO - ============================================================

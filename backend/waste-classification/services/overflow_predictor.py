@@ -235,6 +235,9 @@ class BinOverflowPredictor:
     ) -> List[Dict[str, Any]]:
         """
         Multi-step forecast: each day's prediction is fed back as the next day's input.
+        If start_date is provided, the first forecast day is start_date (or the day after
+        last historical date if start_date is before that). Otherwise forecasting starts
+        at last_date + 1. This keeps overflow_date aligned with the requested target_date.
         Returns a list of {"date": datetime, "pred_distance_cm": float} for each day.
         """
         if not self.is_model_loaded():
@@ -270,12 +273,25 @@ class BinOverflowPredictor:
         
         hist = sorted(hist, key=lambda x: x["recorded_at"])
         future_rows = []
+        last_date = hist[-1]["recorded_at"]
+        if isinstance(last_date, pd.Timestamp):
+            last_date = last_date.to_pydatetime()
+        # First forecast date: use start_date if provided and valid, else last_date + 1
+        next_date_first = None
+        if start_date is not None:
+            d = start_date.date() if hasattr(start_date, "date") else start_date
+            next_date_first = datetime(d.year, d.month, d.day)
+            if next_date_first <= last_date:
+                next_date_first = last_date + timedelta(days=1)
         
         for step in range(horizon_days):
-            last_date = hist[-1]["recorded_at"]
-            if isinstance(last_date, pd.Timestamp):
-                last_date = last_date.to_pydatetime()
-            next_date = last_date + timedelta(days=1)
+            if step == 0 and next_date_first is not None:
+                next_date = next_date_first
+            else:
+                last_in_hist = hist[-1]["recorded_at"]
+                if isinstance(last_in_hist, pd.Timestamp):
+                    last_in_hist = last_in_hist.to_pydatetime()
+                next_date = last_in_hist + timedelta(days=1)
             
             features_df = self._prepare_prediction_features(hist, next_date)
             if features_df is None or len(features_df) == 0:
@@ -287,13 +303,26 @@ class BinOverflowPredictor:
             except Exception as e:
                 logger.warning(f"Recursive forecast step {step} failed: {e}")
                 break
+            last_distance = float(hist[-1]["distance_cm"])
+
+            # valid range
+            pred_next = max(MIN_DISTANCE_CM, min(pred_next, MAX_DISTANCE_CM))
+
+            # Do not allow the bin to become emptier unless you model collection
+            if pred_next > last_distance:
+                pred_next = last_distance
+
+            # If model gets stuck predicting the same value, force small filling progress
+            min_daily_drop = 3.8  # tune for green organic (0.8–2.0)
+            if abs(pred_next - last_distance) < 0.2:
+                pred_next = max(MIN_DISTANCE_CM, last_distance - min_daily_drop)
             
-            if pred_next != pred_next:  # NaN check
-                pred_next = 0.0
-            last_distance = hist[-1]["distance_cm"]
-            pred_next = min(pred_next, last_distance)
-            if pred_next==last_distance:
-                pred_next = MAX_DISTANCE_CM      
+            # if pred_next != pred_next:  # NaN check
+            #     pred_next = 0.0
+            # last_distance = hist[-1]["distance_cm"]
+            # pred_next = min(pred_next, last_distance)
+            # if pred_next==last_distance:
+            #     pred_next = MAX_DISTANCE_CM      
             # pred_next = max(pred_next, MIN_DISTANCE_CM)    # no impossible values
             # pred_next = min(pred_next, MAX_DISTANCE_CM)
 
