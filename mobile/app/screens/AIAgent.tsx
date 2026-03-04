@@ -16,8 +16,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { loginUser } from "../api/user";
 import { getApiUrl } from "../utils/config";
 
+type ChatMessage = {
+  id: string;
+  sender: "user" | "bot";
+  text: string;
+  sources?: string[]; 
+};
+
 export default function Chatbot() {
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<ChatMessage[]>([
     { id: "1", sender: "bot", text: "Hi! How can I help you today?" },
   ]);
   const [input, setInput] = useState("");
@@ -49,7 +56,7 @@ export default function Chatbot() {
       return;
     }
 
-    const userMessage = {
+    const userMessage: ChatMessage  = {
       id: Date.now().toString(),
       sender: "user",
       text: input,
@@ -81,10 +88,21 @@ export default function Chatbot() {
       const data = await response.json();
       console.log("RAG response:", data);
 
-      const botMessage = {
+      // const botMessage = {
+      //   id: Date.now().toString(),
+      //   sender: "bot",
+      //   text: data.answer || "Sorry, I couldn't find an answer.",
+      // };
+
+      const cleanAnswer = data.answer
+        ? data.answer.replace(/^Answer:\s*/i, "").trim()
+        : "Sorry, I couldn't find an answer.";
+
+      const botMessage: ChatMessage = {
         id: Date.now().toString(),
         sender: "bot",
-        text: data.answer || "Sorry, I couldn't find an answer.",
+        text: cleanAnswer,
+        sources: data.sources || [],
       };
 
       setMessages((prev) => [...prev, botMessage]);
@@ -141,11 +159,22 @@ export default function Chatbot() {
                 >
                   {item.text}
                 </Text>
+                {item.sender === "bot" &&
+                  item.sources &&
+                  item.sources.length > 0 && (
+                    <View style={styles.sourcesBox}>
+                      <Text style={styles.sourcesTitle}>Sources:</Text>
+                      {item.sources.map((src: string, idx: number) => (
+                        <Text key={idx} style={styles.sourceItem}>
+                          • {src}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
               </View>
             )}
           />
 
-          {/* Input Row */}
           <View style={styles.inputRow}>
             <TextInput
               style={styles.input}
@@ -230,6 +259,21 @@ const styles = StyleSheet.create({
    sendText: {
     color: "white",
     fontWeight: "bold",
+  },
+  sourcesBox: {
+  marginTop: 6,
+  paddingTop: 4,
+  borderTopWidth: 0.5,
+  borderTopColor: "#ccc",
+  },
+  sourcesTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#1B5E20",
+  },
+  sourceItem: {
+    fontSize: 11,
+    color: "#33691E",
   },
 });
 

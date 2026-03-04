@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import dispose, health, distance, User_routes, overflow
-from routers import dispose, health, distance, rag, User_routes, collector, tax_routes
+from routers import dispose, health, distance, rag, User_routes, collector, tax_routes,overflow, complaints
 from core.database import connect_to_mongo, close_mongo_connection
 from jobs.schedular import setup_schedular
 from jobs.retraining_scheduler import setup_retraining_scheduler
@@ -58,6 +57,7 @@ app.include_router(User_routes.router, prefix="/api/v1/user", tags=["user"])
 app.include_router(overflow.router, prefix="/api/v1/overflow", tags=["overflow"])
 app.include_router(collector.router, prefix="/api/v1", tags=["collector"])
 app.include_router(tax_routes.router, prefix="/api/v1", tags=["tax_routes"])
+app.include_router(complaints.router, prefix="/api/v1", tags=["complaints"])
 
 @app.get("/")
 async def root():

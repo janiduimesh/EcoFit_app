@@ -29,7 +29,6 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 tf.get_logger().setLevel('ERROR') 
 
-from tensorflow.keras.models import load_model
 import tensorflow_hub as hub
 
 logger = logging.getLogger(__name__)
@@ -48,7 +47,7 @@ class WasteClassifier:
             print(f"Loading CNN model from: {model_path_str}")
             logger.info(f"Loading model from: {model_path_str}")
             
-            self.model = load_model(model_path_str)
+            self.model = tf.keras.models.load_model(model_path_str)
             self.model_loaded = True
             print("CNN model loaded successfully")
             logger.info("CNN model loaded successfully")
@@ -57,7 +56,7 @@ class WasteClassifier:
             text_model_path = model_dir / "model_functional_text.keras"
             text_model_path_str = str(text_model_path.resolve())
             print(f"Loading text model from: {text_model_path_str}")
-            self.text_model = load_model(text_model_path_str)
+            self.text_model = tf.keras.models.load_model(text_model_path_str)
             self.text_model_loaded = True
             print("Text model loaded successfully")
 

@@ -22,3 +22,7 @@ apscheduler>=3.10.0
 groq>=0.4.0
 sentence-transformers>=2.2.0
 faiss-cpu>=1.7.4
+# rank-bm25
+# faiss-cpu
+# joblib
+# numpy
