@@ -18,9 +18,6 @@ from core.database import get_database
 db = get_database()
 
 
-# ==========================================
-# 2. UTILITIES & BEHAVIOUR (behaviour.py, update_week_history.py)
-# ==========================================
 def classify_behaviour(waste_type: str, weight: float) -> str:
     if waste_type == "Organic":
         thresholds = [0.5, 2.0, 5.0]
@@ -47,9 +44,6 @@ def update_week_history(prev_12_weeks: List[float], new_weight: float) -> List[f
     return prev_12_weeks
 
 
-# ==========================================
-# 3. SECURITY & AUTH (password_hash.py)
-# ==========================================
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
@@ -64,10 +58,10 @@ def get_password_hash(password):
 
 
 async def get_next_collector_id(location: str) -> str:
-    # Get the database instance locally inside the function
+
     db = get_database()
 
-    # Safety check to ensure the DB is connected
+
     if db is None:
         raise HTTPException(status_code=500, detail="Database connection not initialized")
 
@@ -92,9 +86,6 @@ async def get_next_collector_id(location: str) -> str:
     return f"{max_num + 1:02d}"
 
 
-# ==========================================
-# 4. PRICE & AGGREGATION SERVICES (prices_service.py, aggregation_service.py)
-# ==========================================
 async def set_base_price(waste_type: str, price: float, collector_id: str):
     await db.waste_prices.update_one(
         {"waste_type": waste_type},
@@ -124,9 +115,6 @@ async def generate_monthly_bills(year: int, month: int):
     return {"status": "success", "generated_bills": len(monthly)}
 
 
-# ==========================================
-# 5. ML PREDICTORS (lstm_predictor.py, tax_predictor.py)
-# ==========================================
 MODELS_DIR_WASTE = Path("model/weight_model")
 WASTE_CATEGORIES = ["organic", "recyclable", "inorganic"]
 lstm_models, scalers_x, scalers_y = {}, {}, {}
@@ -150,7 +138,7 @@ def predict_weight(waste_type: str, features: np.ndarray) -> float:
     return float(s_y.inverse_transform(pred_scaled)[0][0])
 
 
-# Tax Predictor Logic (tax_predictor.py)
+
 TAX_MODEL_PATH = Path("./model/tax_model/tax_rate_predictor_v1.pkl")
 
 try:
@@ -167,9 +155,6 @@ def calculate_tax_simple(input_dict: dict) -> dict:
     return {"pred_multiplier": float(pred_mult), "pred_discount": float(pred_disc), "final_bill": float(final)}
 
 
-# ==========================================
-# 6. TAX ENGINES (tax_engine.py, Tax_Invoice.py)
-# ==========================================
 MODEL_DIR_TAX = Path("./model/tax_model")
 
 
@@ -220,9 +205,8 @@ class TaxEngine:
 tax_engine = TaxEngine()
 
 
-# Invoice Generator Logic (Tax_Invoice.py)
 def generate_invoice(weight, category, income, r4, r12, rate, scenario_name="User Input"):
-    # Reuses TaxEngine logic or similar internal model loading
+
     try:
         encoders = joblib.load(MODEL_DIR_TAX / "encoders.pkl")
         m_tax = xgb.XGBRegressor()
@@ -242,12 +226,9 @@ def generate_invoice(weight, category, income, r4, r12, rate, scenario_name="Use
         print(f"Invoice Error: {e}")
 
 
-# ==========================================
-# 7. EXECUTION (Main Block)
-# ==========================================
 if __name__ == "__main__":
     print("System initialized.")
-    # Example Weight Prediction
+
     dummy_input = np.random.rand(12, 7)
     try:
         res = predict_weight("organic", dummy_input)
@@ -255,9 +236,10 @@ if __name__ == "__main__":
     except:
         pass
 
-    # Example Tax Calculation
+
     bill = tax_engine.calculate_bill(20.5, "Inorganic", 2.1, 2.4, 2.0, 15.0)
     print(f"Tax Engine Bill Status: {bill.get('status')} | Final: {bill.get('final_bill')}")
 
-    # Example Invoice
+
     generate_invoice(20.5, "Inorganic", "low", 2.1, 2.4, 15.0, "Massive Spike Test")
+

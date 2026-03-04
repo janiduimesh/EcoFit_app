@@ -62,3 +62,5 @@ app.include_router(complaints.router, prefix="/api/v1", tags=["complaints"])
 @app.get("/")
 async def root():
     return {"message": "EcoFit Waste Classification API", "version": "1.0.0"}
+
+

@@ -112,6 +112,7 @@ class PendingItemResponse(BaseModel):
     waste_type: str
     weight_kg: float
     status: str
+    week: int = 0
     submitted_at: datetime
 
 # --- From tax_schemas.py ---
