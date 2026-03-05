@@ -47,7 +47,7 @@ export default function Logo({ navigation }: Props) {
 
   useEffect(() => {
     if (secondsLeft === 0) {
-      navigation.replace('Main');
+      navigation.replace('Login');
     }
   }, [secondsLeft, navigation]);
 
