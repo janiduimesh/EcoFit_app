@@ -46,7 +46,6 @@ export default function CreateHouseholdScreen({ navigation, route }) {
   const [householdId, setHouseholdId] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
   const [wasteTier, setWasteTier] = useState('');
-  // Initialized as empty so we can validate that the user actually picked one
   const [incomeTier, setIncomeTier] = useState('');
   const [idLoading, setIdLoading] = useState(false);
   const qrCodeRef = useRef(null);
@@ -98,7 +97,7 @@ export default function CreateHouseholdScreen({ navigation, route }) {
 
   const handleWasteTierSelect = (tier) => {
     setWasteTier(tier);
-    setIncomeTier(tier); // UPDATED: Sets income_tier to match the selection
+    setIncomeTier(tier);
     generateWeights(tier);
   };
 
@@ -109,7 +108,7 @@ export default function CreateHouseholdScreen({ navigation, route }) {
   };
 
   const handleSubmit = async () => {
-    // UPDATED: Added validation for tier selection
+
     if (!wasteTier) {
       Alert.alert("Selection Required", "Please select a Waste Generation Tier before submitting.");
       return;
