@@ -235,8 +235,8 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingBottom: 10,
-    paddingTop: 5,
+    paddingBottom: 28,
+    paddingTop: 12,
   },
   input: {
     flex: 1,
