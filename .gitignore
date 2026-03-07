@@ -10,8 +10,14 @@ mobile_flutter/
 .env.*.local
 ecofit_env/
 
+# Backend environment file
+backend/waste-classification/.env
+
 # models
-backend/waste-classification/model
+backend/waste-classification/model/
+
+# Python cache files anywhere
+**/__pycache__/
 
 # Python
 __pycache__/
