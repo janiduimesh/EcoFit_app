@@ -144,7 +144,7 @@ const DashboardHeader = ({
               />
               <View style={styles.visualNumericContainer} pointerEvents="none">
                 <Text style={styles.premiumBigInt}>{inputs[activeTab]?.split('.')[0] || '0'}</Text>
-                <Text style={styles.premiumSmallDec}>.{inputs[activeTab]?.split('.')[1] || '00'}</Text>
+                {/* <Text style={styles.premiumSmallDec}>.{inputs[activeTab]?.split('.')[1] || '00'}</Text> */}
               </View>
             </View>
             <Text style={styles.premiumUnitTag}>KILOGRAMS (KG)</Text>
