@@ -14,7 +14,6 @@ import AIAgent from './app/screens/AIAgent';
 import Tax from './app/screens/Tax';
 import Tax_Household from './app/screens/Tax_Household';
 import PaymentScreen from './app/screens/Tax_Payment';
-import complaint from './app/screens/complaint';
 
 type RootStackParamList = {
   Logo: undefined;
@@ -24,10 +23,9 @@ type RootStackParamList = {
   Register: undefined;
   WasteCheck: undefined;
   AIAgent: undefined;
-  Tax: { email: string };
-  Tax_Household: { email: string };
+
+
   Result: { data: any };
-  complaint: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -37,72 +35,67 @@ export default function App() {
     <NavigationContainer>
       <StatusBar style="auto" />
       <Stack.Navigator
-        initialRouteName="Logo"
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: '#4CAF50',
-          },
-          headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
-        }}
+        initialRouteName="Login"
+        // screenOptions={{
+        //   headerStyle: {
+        //     backgroundColor: '#4CAF50',
+        //   },
+        //   headerTintColor: '#fff',
+        //   headerTitleStyle: {
+        //     fontWeight: 'bold',
+        //   },
+        // }}
       >
-        <Stack.Screen 
-          name="Logo" 
-          component={Logo} 
+        {/* <Stack.Screen
+          name="Logo"
+          component={Logo}
+          options={{ headerShown: false }}
+        /> */}
+        <Stack.Screen
+          name="Login"
+          component={Login}
           options={{ headerShown: false }}
         />
-        <Stack.Screen 
-          name="Login" 
-          component={Login} 
+        <Stack.Screen
+          name="Register"
+          component={Register}
           options={{ headerShown: false }}
         />
-        <Stack.Screen 
-          name="Register" 
-          component={Register} 
+        <Stack.Screen
+          name="Main"
+          component={Main}
           options={{ headerShown: false }}
         />
-        <Stack.Screen 
-          name="Main" 
-          component={Main} 
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen 
-          name="Home" 
-          component={Home} 
+        <Stack.Screen
+          name="Home"
+          component={Home}
           options={{ title: 'Check Waste Type' }}
         />
-        <Stack.Screen 
-          name="WasteCheck" 
-          component={WasteCheck} 
+        <Stack.Screen
+          name="WasteCheck"
+          component={WasteCheck}
           options={{ title: 'Check Waste Type' }}
         />
-        <Stack.Screen 
-          name="AIAgent" 
-          component={AIAgent} 
+        <Stack.Screen
+          name="AIAgent"
+          component={AIAgent}
           options={{ title: 'AI Agent' }}
         />
-        <Stack.Screen 
-          name="Result" 
-          component={Result} 
+        <Stack.Screen
+          name="Result"
+          component={Result}
           options={{ title: 'Results' }}
         />
 
          <Stack.Screen
-          name="Tax"
-          component={Tax}
-          options={{ title: 'Check Tax' }}
-        />
-         <Stack.Screen
-          name="complaint"
-          component={complaint}
-          options={{ title: 'Complaint' }}
+        name="Tax"
+        component={Tax}
+        options={{ title: 'Check Tax' }}
         />
         <Stack.Screen
-          name="Tax_Household"
-          component={Tax_Household}
-          options={{ title: 'Create Household' }}
+        name="Tax_Household"
+        component={Tax_Household}
+        options={{ title: 'Create Household' }}
         />
 
         <Stack.Screen

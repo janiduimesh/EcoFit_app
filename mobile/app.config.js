@@ -4,7 +4,7 @@ export default {
     slug: "ecofit-mobile",
     version: "1.0.0",
     orientation: "portrait",
-    platforms: ["ios", "android"],
+    platforms: ["ios", "android", "web"],
     userInterfaceStyle: "light",
     splash: {
       resizeMode: "contain",

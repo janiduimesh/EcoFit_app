@@ -160,6 +160,13 @@ export default function Result({ navigation, route }: Props) {
           >
             <Text style={styles.secondaryButtonText}>Go Back</Text>
           </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleNewEntry}
+          >
+            <Text style={styles.buttonText}>New Entry</Text>
+          </TouchableOpacity>
         </View>
       </View>
 

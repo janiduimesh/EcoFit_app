@@ -8,7 +8,6 @@ import {
   Dimensions,
   ScrollView,
   Image,
-  Alert,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import OnboardingModal from '../components/OnboardingModal';
@@ -45,7 +44,6 @@ type RootStackParamList = {
   Tax: { email: string };
   Tax_Household: { email: string };
   Result: { data: any };
-  complaint: undefined;
 };
 
 type MainScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Main'>;
@@ -156,7 +154,8 @@ export default function Main({ navigation }: Props) {
   };
 
   const handleComplaints = () => {
-    navigation.navigate('complaint')
+    // TODO: Implement complaints
+    console.log('Complaints pressed');
   };
 
   const connectedCount = BIN_LIST.filter((b) => binConnected[b.id]).length;
@@ -386,7 +385,6 @@ const styles = StyleSheet.create({
   },
   binsScroll: {
     paddingRight: 20,
-    paddingVertical: 12,
     gap: 12,
   },
   binCard: {
