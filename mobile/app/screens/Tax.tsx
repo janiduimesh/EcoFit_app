@@ -521,8 +521,11 @@ const styles = StyleSheet.create({
   },
   premiumInputSide: { flex: 1 },
   weightDisplayRow: { flexDirection: 'row', alignItems: 'baseline', position: 'relative' },
-  floatingHiddenInput: { position: 'absolute', width: '100%', height: '100%', zIndex: 10, color: 'transparent', fontSize: 40 },
-  visualNumericContainer: { flexDirection: 'row', alignItems: 'baseline' },
+  floatingHiddenInput: {
+    position: 'absolute', width: '100%', height: '100%', zIndex: 1, color: 'transparent', fontSize: 40,
+    textShadowColor: 'transparent', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 0,
+  },
+  visualNumericContainer: { flexDirection: 'row', alignItems: 'baseline', position: 'relative', zIndex: 2 },
   premiumBigInt: { fontSize: 48, fontWeight: '600', color: COLORS.primary, letterSpacing: -2 },
   premiumSmallDec: { fontSize: 24, fontWeight: '600', color: COLORS.accent, marginLeft: 2 },
   premiumUnitTag: { fontSize: 10, fontWeight: '800', color: COLORS.textLight, marginTop: -5 },

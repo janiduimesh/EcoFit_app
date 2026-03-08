@@ -386,6 +386,7 @@ const styles = StyleSheet.create({
   },
   binsScroll: {
     paddingRight: 20,
+    paddingVertical: 12,
     gap: 12,
   },
   binCard: {

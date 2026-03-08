@@ -31,17 +31,16 @@ export default function Chatbot() {
   const [botTyping, setBotTyping] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const listRef = useRef<FlatList>(null);
-  //const API_URL = "http://192.168.137.1:8000/api/v1/rag/ask";
    const API_URL = `${getApiUrl()}/rag/ask`;
 
-  // Auto-scroll when messages update
+  //Auto-scroll when messages update
   useEffect(() => {
     if (listRef.current) {
       setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
     }
   }, [messages]);
 
-  // Load user_id from AsyncStorage on startup
+  //Load user_id from AsyncStorage on startup
   useEffect(() => {
     const loadUserId = async () => {
       const storedId = await AsyncStorage.getItem("user_id");
@@ -80,7 +79,6 @@ export default function Chatbot() {
         }),
       });
 
-      //console.log("Response status:", response.status);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
@@ -88,22 +86,28 @@ export default function Chatbot() {
       const data = await response.json();
       console.log("RAG response:", data);
 
-      // const botMessage = {
-      //   id: Date.now().toString(),
-      //   sender: "bot",
-      //   text: data.answer || "Sorry, I couldn't find an answer.",
-      // };
-
       const cleanAnswer = data.answer
         ? data.answer.replace(/^Answer:\s*/i, "").trim()
         : "Sorry, I couldn't find an answer.";
 
+      const cleanedSources: string[] = data.sources
+        ? Array.from(
+          new Set(
+            (data.sources as string[]).map((src) =>
+              src
+                .replace(/\.(txt|pdf|docx?)$/i, "")
+                .replace(/_/g, " ")
+            )
+          )
+        )
+        : [];
+
       const botMessage: ChatMessage = {
-        id: Date.now().toString(),
-        sender: "bot",
-        text: cleanAnswer,
-        sources: data.sources || [],
-      };
+          id: Date.now().toString(),
+          sender: "bot",
+          text: cleanAnswer,
+          sources: cleanedSources,
+        };
 
       setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
@@ -116,13 +120,7 @@ export default function Chatbot() {
         text: "Backend error. Check server logs.",
       },
     ]);
-      // const errorMessage = {
-      //   id: Date.now().toString(),
-      //   sender: "bot",
-      //   text: "⚠️ Unable to connect to the server. Please try again.",
-      // };
-
-      // setMessages((prev) => [...prev, errorMessage]);
+      
     } finally {
       setBotTyping(false);
     }
@@ -235,8 +233,8 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingBottom: 10,
-    paddingTop: 5,
+    paddingBottom: 28,
+    paddingTop: 12,
   },
   input: {
     flex: 1,
