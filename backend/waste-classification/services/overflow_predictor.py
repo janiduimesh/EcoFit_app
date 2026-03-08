@@ -230,7 +230,7 @@ class BinOverflowPredictor:
     def recursive_forecast_distance(
         self,
         historical_data: List[Dict],
-        horizon_days: int = 60,
+        horizon_days: int = 30,
         start_date: Optional[datetime] = None
     ) -> List[Dict[str, Any]]:
         """
@@ -376,7 +376,7 @@ class BinOverflowPredictor:
 
         # Predict overflow date: first day when pred_distance_cm <= OVERFLOW_DISTANCE_CM
         future_pred = self.recursive_forecast_distance(
-            historical_data, horizon_days=60, start_date=target_date
+            historical_data, horizon_days=30, start_date=target_date
         )
         overflow_date = None
         for row in future_pred:
