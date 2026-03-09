@@ -3,8 +3,8 @@ import { getApiUrl } from '../utils/config';
 export type ComplaintPriority = 'low' | 'medium' | 'high';
 
 export interface ComplaintCreateRequest {
-  lat: number;
-  lng: number;
+  lat?: number;
+  lng?: number;
 
   wardId?: string;
   category?: string;
