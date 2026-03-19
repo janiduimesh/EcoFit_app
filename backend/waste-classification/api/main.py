@@ -27,18 +27,18 @@ async def startup_db_client():
     import logging
     logger = logging.getLogger(__name__)
     logger.info("Starting database connection...")
-    print("🔄 Starting database connection...")
+    print("------------Starting database connection...-----------")
     await connect_to_mongo()
     
     # Start the data collection scheduler
-    print("🔄 Starting data collection scheduler...")
+    print("------------Starting data collection scheduler...-----------")
     scheduler = await setup_schedular()
     
     # Add model retraining job to the same scheduler
-    print("🔄 Setting up model retraining scheduler...")
+    print("------------Setting up model retraining scheduler...-----------")
     setup_retraining_scheduler(scheduler)
     
-    logger.info("✅ All schedulers started successfully")
+    logger.info("---------All schedulers started successfully---------------")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
