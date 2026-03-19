@@ -10,8 +10,10 @@ import {
   Platform,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { registerUser } from '../api/user';
 
 type RootStackParamList = {
   Logo: undefined;
@@ -21,6 +23,7 @@ type RootStackParamList = {
   Register: undefined;
   WasteCheck: undefined;
   Result: { data: any };
+  Main: { email?: string }
 };
 
 type RegisterScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Register'>;
@@ -32,14 +35,18 @@ type Props = {
 export default function Register({ navigation }: Props) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
+  const [area, setArea] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleRegister = () => {
-    if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+  const handleRegister = async () => {
+    // Validation
+    if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim() || !area.trim()) {
+      Alert.alert('Error', 'Please fill in all required fields');
       return;
     }
 
@@ -53,11 +60,54 @@ export default function Register({ navigation }: Props) {
       return;
     }
 
-    // TODO: Implement actual registration logic
-    console.log('Register:', { name, email, password });
-    Alert.alert('Success', 'Account created successfully!', [
-      { text: 'OK', onPress: () => navigation.replace('Main') },
-    ]);
+    if (password.length > 72) {
+      Alert.alert('Error', 'Password must be less than 72 characters');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await registerUser({
+        name: name.trim(),
+        email: email.trim(),
+        password: password,
+        address: address.trim() || undefined,
+        area: area.trim(),
+      });
+
+      console.log('Registration successful:', response);
+      
+      // Store user ID for onboarding
+      if (response.user_id) {
+        try {
+          const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+          await AsyncStorage.setItem('user_id', response.user_id);
+          await AsyncStorage.setItem('user_email', email.trim().toLowerCase());
+          await AsyncStorage.removeItem('onboarding_completed');
+        } catch (storageError) {
+          console.warn('Could not store user ID:', storageError);
+        }
+      }
+      
+      Alert.alert('Success', response.message || 'Account created successfully!', [
+        { 
+          text: 'OK', 
+          onPress: () => navigation.replace('Main') 
+        },
+      ]);
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      
+      let errorMessage = 'Registration failed. Please try again.';
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert('Registration Failed', errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const navigateToLogin = () => {
@@ -98,17 +148,44 @@ export default function Register({ navigation }: Props) {
                 autoCorrect={false}
               />
             </View>
+        
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Email</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your email"
+                  placeholderTextColor="#9E9E9E"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+
 
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Email</Text>
+              <Text style={styles.label}>Full Address (Optional)</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Enter your email"
+                placeholder="Enter your full address"
                 placeholderTextColor="#9E9E9E"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
+                value={address}
+                onChangeText={setAddress}
+                autoCapitalize="words"
+                autoCorrect={false}
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Area</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter your area for waste collection"
+                placeholderTextColor="#9E9E9E"
+                value={area}
+                onChangeText={setArea}
+                autoCapitalize="words"
                 autoCorrect={false}
               />
             </View>
@@ -157,8 +234,16 @@ export default function Register({ navigation }: Props) {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-              <Text style={styles.registerButtonText}>Sign Up</Text>
+            <TouchableOpacity 
+              style={[styles.registerButton, isLoading && styles.registerButtonDisabled]} 
+              onPress={handleRegister}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.registerButtonText}>Sign Up</Text>
+              )}
             </TouchableOpacity>
 
             <View style={styles.loginContainer}>
@@ -285,6 +370,9 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
+  registerButtonDisabled: {
+    opacity: 0.6,
+  },
   registerButtonText: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -305,4 +393,3 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-

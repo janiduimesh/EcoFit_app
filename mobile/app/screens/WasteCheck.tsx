@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,13 @@ import {
   Alert,
   Dimensions,
   ScrollView,
+  ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
+import { getBinImage } from '../utils/binImages';
+import { getOverflowPredict, OverflowPredictionResponse } from '../api/overflow';
 
 type RootStackParamList = {
   Logo: undefined;
@@ -30,11 +34,42 @@ type Props = {
 
 const { width } = Dimensions.get('window');
 
+const BIN_LIST = [
+  { id: 'blue_bin', name: 'Recycling Bin' },
+  { id: 'yellow_bin', name: 'General Waste' },
+  { id: 'green_bin', name: 'Organic Waste' },
+  { id: 'black_bin', name: 'Hazardous Waste' },
+  { id: 'red_bin', name: 'Electronic Waste' },
+];
+
 export default function WasteCheck({ navigation }: Props) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [volume, setVolume] = useState('');
-  const [inputMethod, setInputMethod] = useState<'image' | 'description'>('image');
+  const [inputMethod, setInputMethod] = useState<'image' | 'description' | 'overflow'>('image');
+  const [userId, setUserId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [overflowModalBin, setOverflowModalBin] = useState<typeof BIN_LIST[0] | null>(null);
+  const [overflowModalDetails, setOverflowModalDetails] = useState<OverflowPredictionResponse | null>(null);
+  const [overflowModalLoading, setOverflowModalLoading] = useState(false);
+  const [overflowModalError, setOverflowModalError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Load user_id from AsyncStorage
+    const loadUserId = async () => {
+      try {
+        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+        const storedUserId = await AsyncStorage.getItem('user_id');
+        if (storedUserId) {
+          setUserId(storedUserId);
+        }
+      } catch (error) {
+        console.warn('Could not load user_id:', error);
+      }
+    };
+    loadUserId();
+  }, []);
 
   const handleImageSelect = () => {
     Alert.alert(
@@ -81,6 +116,10 @@ export default function WasteCheck({ navigation }: Props) {
 
       if (!result.canceled && result.assets[0]) {
         setSelectedImage(result.assets[0].uri);
+        // Store base64 data for API
+        if (result.assets[0].base64) {
+          setImageBase64(result.assets[0].base64);
+        }
       }
     } catch (error) {
       console.error('Error taking photo:', error);
@@ -104,14 +143,17 @@ export default function WasteCheck({ navigation }: Props) {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [4, 3],
+        allowsEditing: false,  // Change to false
         quality: 0.8,
         base64: true,
       });
 
       if (!result.canceled && result.assets[0]) {
         setSelectedImage(result.assets[0].uri);
+        // Store base64 data for API
+        if (result.assets[0].base64) {
+          setImageBase64(result.assets[0].base64);
+        }
       }
     } catch (error) {
       console.error('Error selecting image:', error);
@@ -119,7 +161,53 @@ export default function WasteCheck({ navigation }: Props) {
     }
   };
 
+  const getUrgencyColor = (days: number) => {
+    if (days <= 3) return '#F44336';
+    if (days <= 7) return '#FF9800';
+    return '#4CAF50';
+  };
+
+  const getUrgencyLabel = (days: number) => {
+    if (days <= 3) return 'CRITICAL';
+    if (days <= 7) return 'SOON';
+    return 'SAFE';
+  };
+
+  const getRiskColor = (risk?: string) => {
+    if (!risk) return '#9E9E9E';
+    if (risk === 'high') return '#F44336';
+    if (risk === 'medium') return '#FF9800';
+    if (risk === 'low') return '#8BC34A';
+    return '#4CAF50';
+  };
+
+  const handleOverflowCheck = async (bin: typeof BIN_LIST[0]) => {
+    setOverflowModalBin(bin);
+    setOverflowModalDetails(null);
+    setOverflowModalError(null);
+    setOverflowModalLoading(true);
+    try {
+      const result = await getOverflowPredict(bin.id);
+      setOverflowModalDetails(result);
+    } catch (e) {
+      setOverflowModalError(e instanceof Error ? e.message : 'Failed to load prediction');
+    } finally {
+      setOverflowModalLoading(false);
+    }
+  };
+
+  const closeOverflowModal = () => {
+    setOverflowModalBin(null);
+    setOverflowModalDetails(null);
+    setOverflowModalError(null);
+  };
+
   const handleSubmit = async () => {
+    // Only allow submission for image or description methods
+    if (inputMethod === 'overflow') {
+      return;
+    }
+
     if (inputMethod === 'image' && !selectedImage) {
       Alert.alert('Error', 'Please select an image first');
       return;
@@ -128,34 +216,83 @@ export default function WasteCheck({ navigation }: Props) {
       Alert.alert('Error', 'Please describe your waste');
       return;
     }
-    if (!volume.trim()) {
-      Alert.alert('Error', 'Please enter the waste volume');
-      return;
+ 
+    let volumeValue: number | undefined = undefined;
+    if (volume.trim()) {
+      volumeValue = parseFloat(volume);
+      if (isNaN(volumeValue) || volumeValue <= 0) {
+        Alert.alert('Error', 'Please enter a valid volume');
+        return;
+      }
     }
 
     try {
-      // Import the dispose function
+      setIsLoading(true);
+      
+      // Import API functions
       const { dispose } = await import('../api/dispose');
       
-      const wasteData = {
-        image_data: selectedImage || undefined,
-        description: description || undefined,
-        volume: parseInt(volume),
-        input_method: inputMethod,
-      };
+        // Prepare waste classification data
+        // Type assertion is safe here because we've already checked inputMethod is not 'overflow'
+        const wasteData = {
+          user_id: userId || undefined,
+          image_data: inputMethod === 'image' ? imageBase64 || undefined : undefined,
+          description: inputMethod === 'description' ? description.trim() || undefined : undefined,
+          volume: volumeValue ? parseInt(volume) : undefined, 
+          input_method: inputMethod as 'image' | 'description',
+        };
       
       console.log('Sending waste data:', wasteData);
       
-      const result = await dispose(wasteData);
+      // Call both APIs in parallel
+      const classificationResult = await dispose(wasteData);
       
-      console.log('Classification result:', result);
+      console.log('Classification result:', classificationResult);
       
-      // Navigate to results screen with the classification result
-      navigation.navigate('Result', { data: result });
+      // Check if waste type is "other" or "unknown", or confidence is too low
+      const wasteType = classificationResult.waste_type?.toLowerCase();
+      const confidence = classificationResult.confidence || 0;
+      const CONFIDENCE_THRESHOLD = 0.5; 
       
-    } catch (error) {
-      console.error('Error classifying waste:', error);
-      Alert.alert('Error', 'Failed to classify waste. Please try again.');
+      const isUnknownType = wasteType === 'other' || wasteType === 'unknown';
+      const isLowConfidence = confidence < CONFIDENCE_THRESHOLD;
+      
+      if (isUnknownType || isLowConfidence) {
+        const message = isUnknownType
+          ? 'Could not identify the waste type. Please add a clearer image or provide a more detailed description and try again.'
+          : `Classification confidence is too low (${Math.round(confidence * 100)}%). Please add a clearer image or provide a more detailed description and try again.`;
+        
+        Alert.alert(
+          'Classification Uncertain',
+          message,
+          [
+            {
+              text: 'Try Again',
+              onPress: () => {
+                if (inputMethod === 'image') {
+                  setSelectedImage(null);
+                  setImageBase64(null);
+                }
+              },
+            },
+          ]
+        );
+        return;
+      }
+      
+      navigation.navigate('Result', { data: classificationResult });
+      
+    } catch (error: any) {
+      console.error('Error processing waste:', error);
+      
+      let errorMessage = 'Failed to process waste. Please try again.';
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -180,7 +317,10 @@ export default function WasteCheck({ navigation }: Props) {
           <View style={styles.methodSelector}>
             <TouchableOpacity 
               style={[styles.methodButton, inputMethod === 'image' && styles.methodButtonActive]}
-              onPress={() => setInputMethod('image')}
+              onPress={() => {
+                setInputMethod('image');
+                setDescription(''); // Clear description when switching to image
+              }}
             >
               <Text style={[styles.methodButtonText, inputMethod === 'image' && styles.methodButtonTextActive]}>
                 📷 Image
@@ -188,10 +328,27 @@ export default function WasteCheck({ navigation }: Props) {
             </TouchableOpacity>
             <TouchableOpacity 
               style={[styles.methodButton, inputMethod === 'description' && styles.methodButtonActive]}
-              onPress={() => setInputMethod('description')}
+              onPress={() => {
+                setInputMethod('description');
+                setSelectedImage(null); // Clear image when switching to description
+                setImageBase64(null);
+              }}
             >
               <Text style={[styles.methodButtonText, inputMethod === 'description' && styles.methodButtonTextActive]}>
                 ✏️ Description
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.methodButton, inputMethod === 'overflow' && styles.methodButtonActive]}
+              onPress={() => {
+                setInputMethod('overflow');
+                setSelectedImage(null);
+                setImageBase64(null);
+                setDescription('');
+              }}
+            >
+              <Text style={[styles.methodButtonText, inputMethod === 'overflow' && styles.methodButtonTextActive]}>
+                📊 Overflows
               </Text>
             </TouchableOpacity>
           </View>
@@ -237,36 +394,197 @@ export default function WasteCheck({ navigation }: Props) {
             </View>
           )}
 
-          {/* Divider */}
-          <View style={styles.dividerContainer}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>and</Text>
-            <View style={styles.dividerLine} />
-          </View>
+          {/* Overflow Tab Content */}
+          {inputMethod === 'overflow' && (
+            <View style={styles.overflowContainer}>
+              {/* Header */}
+              <View style={styles.overflowHeader}>
+                <View style={styles.overflowHeaderContent}>
+                  <Text style={styles.overflowHeaderIcon}>📊</Text>
+                  <View>
+                    <Text style={styles.overflowTitle}>Bin Overflow Forecast</Text>
+                    <Text style={styles.overflowSubtitle}>AI-Powered Predictions</Text>
+                  </View>
+                </View>
+              </View>
 
-          {/* Volume Input */}
-          <View style={styles.inputSection}>
-            <Text style={styles.sectionTitle}>Waste Volume</Text>
-            <Text style={styles.sectionSubtitle}>Enter approximate volume in milliliters</Text>
-            <View style={styles.volumeInputContainer}>
-              <TextInput
-                style={styles.volumeInput}
-                value={volume}
-                onChangeText={setVolume}
-                placeholder="e.g., 500"
-                keyboardType="numeric"
-                placeholderTextColor="#999"
-              />
-              <Text style={styles.volumeUnit}>ml</Text>
+              {/* Info Banner */}
+              <View style={styles.overflowInfoBanner}>
+                <Text style={styles.overflowInfoIcon}>🤖</Text>
+                <Text style={styles.overflowInfoText}>
+                  Predictions based on time series analysis of your disposal patterns
+                </Text>
+              </View>
+
+              {/* Bin List - compact row + Check button */}
+              <ScrollView 
+                style={styles.overflowScrollView}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={styles.overflowScrollContent}
+              >
+                {BIN_LIST.map((bin) => (
+                  <View key={bin.id} style={styles.overflowBinCard}>
+                    <View style={styles.overflowBinHeader}>
+                      <View style={styles.overflowBinImageContainer}>
+                        <Image
+                          source={getBinImage(bin.id)}
+                          style={styles.overflowBinImage}
+                          resizeMode="contain"
+                        />
+                      </View>
+                      <View style={styles.overflowBinInfo}>
+                        <Text style={styles.overflowBinName}>{bin.name}</Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.overflowCheckButton}
+                        onPress={() => handleOverflowCheck(bin)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.overflowCheckButtonText}>Check</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+
+                <View style={styles.overflowFooterNote}>
+                  <Text style={styles.overflowFooterIcon}>⚡</Text>
+                  <Text style={styles.overflowFooterText}>
+                    Tap Check to see predicted overflow date and status. Predictions update daily based on your disposal activity.
+                  </Text>
+                </View>
+              </ScrollView>
+
+              {/* Overflow details modal */}
+              <Modal
+                visible={overflowModalBin !== null}
+                transparent
+                animationType="fade"
+                onRequestClose={closeOverflowModal}
+              >
+                <TouchableOpacity
+                  style={styles.overflowModalBackdrop}
+                  activeOpacity={1}
+                  onPress={closeOverflowModal}
+                >
+                  <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()} style={styles.overflowModalBox}>
+                    {overflowModalBin && (
+                      <>
+                        <View style={styles.overflowModalHeader}>
+                          <Text style={styles.overflowModalTitle}>{overflowModalBin.name}</Text>
+                          <TouchableOpacity onPress={closeOverflowModal} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                            <Text style={styles.overflowModalClose}>✕</Text>
+                          </TouchableOpacity>
+                        </View>
+                        {overflowModalLoading && (
+                          <View style={styles.overflowModalLoading}>
+                            <ActivityIndicator size="large" color="#2E7D32" />
+                            <Text style={styles.overflowModalLoadingText}>Loading prediction...</Text>
+                          </View>
+                        )}
+                        {overflowModalError && !overflowModalLoading && (
+                          <View style={styles.overflowModalContent}>
+                            <Text style={styles.overflowModalError}>{overflowModalError}</Text>
+                          </View>
+                        )}
+                        {overflowModalDetails && !overflowModalLoading && overflowModalDetails.success && (
+                          <View style={styles.overflowModalContent}>
+                            {overflowModalDetails.overflow_risk != null && (
+                              <View style={[styles.overflowModalBadge, { backgroundColor: getRiskColor(overflowModalDetails.overflow_risk) }]}>
+                                <Text style={styles.overflowUrgencyText}>{overflowModalDetails.overflow_risk.toUpperCase()}</Text>
+                              </View>
+                            )}
+                            {overflowModalDetails.overflow_date != null && (
+                              <View style={styles.overflowDateSection}>
+                                <View style={styles.overflowDateContainer}>
+                                  <Text style={styles.overflowDateIcon}>📅</Text>
+                                  <View>
+                                    <Text style={styles.overflowDateLabel}>Predicted overflow</Text>
+                                    <Text style={styles.overflowDateText}>{overflowModalDetails.overflow_date}</Text>
+                                  </View>
+                                </View>
+                              </View>
+                            )}
+                            {overflowModalDetails.predicted_distance_cm != null && (
+                              <Text style={styles.overflowModalDistance}>
+                                Distance: {overflowModalDetails.predicted_distance_cm} cm
+                              </Text>
+                            )}
+                            <View style={styles.overflowPredictionNote}>
+                              <Text style={styles.overflowPredictionIcon}>💡</Text>
+                              <Text style={styles.overflowPredictionText}>{overflowModalDetails.message}</Text>
+                            </View>
+                          </View>
+                        )}
+                        {overflowModalDetails && !overflowModalDetails.success && !overflowModalLoading && (
+                          <View style={styles.overflowModalContent}>
+                            <Text style={styles.overflowModalError}>{overflowModalDetails.message}</Text>
+                          </View>
+                        )}
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </TouchableOpacity>
+              </Modal>
             </View>
-          </View>
+          )}
 
-          {/* Submit Button */}
-          <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-            <Text style={styles.submitButtonText}>🔍 Check Waste Type</Text>
-          </TouchableOpacity>
+          {/* Divider - Only show for image and description tabs */}
+          {(inputMethod === 'image' || inputMethod === 'description') && (
+            <View style={styles.dividerContainer}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>and</Text>
+              <View style={styles.dividerLine} />
+            </View>
+          )}
+
+          {/* Volume Input - Only show for image and description tabs */}
+          {(inputMethod === 'image' || inputMethod === 'description') && (
+            <View style={styles.inputSection}>
+              <Text style={styles.sectionTitle}>Waste Volume</Text>
+              <Text style={styles.sectionSubtitle}>Enter approximate volume in milliliters</Text>
+              <View style={styles.volumeInputContainer}>
+                <TextInput
+                  style={styles.volumeInput}
+                  value={volume}
+                  onChangeText={setVolume}
+                  placeholder="e.g., 500"
+                  keyboardType="numeric"
+                  placeholderTextColor="#999"
+                />
+                <Text style={styles.volumeUnit}>ml</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Submit Button - Only show for image and description tabs */}
+          {(inputMethod === 'image' || inputMethod === 'description') && (
+            <TouchableOpacity 
+              style={[styles.submitButton, isLoading && styles.submitButtonDisabled]} 
+              onPress={handleSubmit}
+              disabled={isLoading}
+            >
+              <Text style={styles.submitButtonText}>
+                {isLoading ? 'Processing...' : '🔍 Check Waste Type'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
+
+      {/* Loading Overlay */}
+      <Modal
+        visible={isLoading}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#2E7D32" />
+            <Text style={styles.loadingText}>Analyzing waste...</Text>
+            <Text style={styles.loadingSubtext}>Please wait</Text>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -329,7 +647,7 @@ const styles = StyleSheet.create({
   methodButton: {
     flex: 1,
     paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
     borderRadius: 8,
     alignItems: 'center',
   },
@@ -491,5 +809,299 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#A5D6A7',
+    opacity: 0.7,
+  },
+  loadingOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingContainer: {
+    backgroundColor: '#FFFFFF',
+    padding: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2E7D32',
+  },
+  loadingSubtext: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#666',
+  },
+  // Overflow Tab Styles
+  overflowContainer: {
+    flex: 1,
+    marginBottom: 24,
+  },
+  overflowHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#2E7D32',
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  overflowHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  overflowHeaderIcon: {
+    fontSize: 28,
+    marginRight: 12,
+  },
+  overflowTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  overflowSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+  },
+  overflowInfoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E3F2FD',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  overflowInfoIcon: {
+    fontSize: 20,
+    marginRight: 10,
+  },
+  overflowInfoText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#1565C0',
+    lineHeight: 18,
+  },
+  overflowScrollView: {
+    flex: 1,
+    maxHeight: 500,
+  },
+  overflowScrollContent: {
+    paddingBottom: 20,
+  },
+  overflowBinCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  overflowBinHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  overflowCheckButton: {
+    backgroundColor: '#2E7D32',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  overflowCheckButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  overflowModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  overflowModalBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    maxWidth: 340,
+  },
+  overflowModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  overflowModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#333',
+  },
+  overflowModalClose: {
+    fontSize: 22,
+    color: '#666',
+    padding: 4,
+  },
+  overflowModalLoading: {
+    paddingVertical: 24,
+    alignItems: 'center',
+  },
+  overflowModalLoadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#666',
+  },
+  overflowModalContent: {
+    paddingVertical: 4,
+  },
+  overflowModalBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  overflowModalError: {
+    fontSize: 14,
+    color: '#F44336',
+    marginVertical: 8,
+  },
+  overflowModalDistance: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 8,
+  },
+  overflowBinImageContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    backgroundColor: '#F5F5F5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  overflowBinImage: {
+    width: 45,
+    height: 45,
+  },
+  overflowBinInfo: {
+    flex: 1,
+  },
+  overflowBinName: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 6,
+  },
+  overflowUrgencyBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  overflowUrgencyText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.8,
+  },
+  overflowDateSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FAFAFA',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  overflowDateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  overflowDateIcon: {
+    fontSize: 24,
+    marginRight: 10,
+  },
+  overflowDateLabel: {
+    fontSize: 11,
+    color: '#888',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  overflowDateText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#333',
+  },
+  overflowDaysContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    minWidth: 56,
+  },
+  overflowDaysNumber: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  overflowDaysLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.9)',
+    textTransform: 'uppercase',
+  },
+  overflowPredictionNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  overflowPredictionIcon: {
+    fontSize: 14,
+    marginRight: 8,
+  },
+  overflowPredictionText: {
+    fontSize: 12,
+    color: '#888',
+    fontStyle: 'italic',
+    flex: 1,
+  },
+  overflowFooterNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FFF8E1',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  overflowFooterIcon: {
+    fontSize: 18,
+    marginTop: 2,
+    marginRight: 10,
+  },
+  overflowFooterText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#F57C00',
+    lineHeight: 18,
   },
 });

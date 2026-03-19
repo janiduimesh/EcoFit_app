@@ -1,13 +1,18 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Image,
+  Alert,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RouteProp } from '@react-navigation/native';
+import { getBinImage } from '../utils/binImages';
+import TipsModal from '../components/TipsModal';
+import { getTips, TipsResponse } from '../api/tips';
 
 type RootStackParamList = {
   Home: undefined;
@@ -24,6 +29,25 @@ type Props = {
 
 export default function Result({ navigation, route }: Props) {
   const { data } = route.params;
+  const [showTipsModal, setShowTipsModal] = useState(false);
+  const [tipsData, setTipsData] = useState<TipsResponse | null>(null);
+  const [loadingTips, setLoadingTips] = useState(false);
+  const [userId, setUserId] = useState<string>('');
+
+  useEffect(() => {
+    const loadUserId = async () => {
+      try {
+        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+        const storedUserId = await AsyncStorage.getItem('user_id');
+        if (storedUserId) {
+          setUserId(storedUserId);
+        }
+      } catch (error) {
+        console.warn('Could not load user_id:', error);
+      }
+    };
+    loadUserId();
+  }, []);
 
   const handleGoBack = () => {
     navigation.goBack();
@@ -31,6 +55,30 @@ export default function Result({ navigation, route }: Props) {
 
   const handleNewEntry = () => {
     navigation.navigate('Home');
+  };
+
+  const handleGetTips = async () => {
+    if (!userId) {
+      Alert.alert('Error', 'Please log in to get personalized recommendations');
+      return;
+    }
+
+    setLoadingTips(true);
+    setShowTipsModal(true);
+    
+    try {
+      const tips = await getTips({
+        user_id: userId,
+        waste_type: data.waste_type,
+      });
+      setTipsData(tips);
+    } catch (error) {
+      console.error('Error fetching tips:', error);
+      Alert.alert('Error', 'Failed to get recommendations. Please try again.');
+      setShowTipsModal(false);
+    } finally {
+      setLoadingTips(false);
+    }
   };
 
   return (
@@ -50,17 +98,44 @@ export default function Result({ navigation, route }: Props) {
             <Text style={styles.resultItemLabel}>Bin Type:</Text>
             <Text style={styles.resultItemValue}>{data.bin_type || 'Unknown'}</Text>
           </View>
+
+          {data.bin_type && (
+            <View style={styles.binImageContainer}>
+              <Image 
+                source={getBinImage(data.bin_type)} 
+                style={styles.binImage}
+                resizeMode="contain"
+              />
+            </View>
+          )}
           
-          <View style={styles.resultItem}>
-            <Text style={styles.resultItemLabel}>Fit Status:</Text>
-            <Text style={[styles.resultItemValue, 
-              data.fit_status === 'fits' ? styles.fitsText : 
-              data.fit_status === 'does_not_fit' ? styles.noFitText : 
-              styles.partialFitText]}>
-              {data.fit_status || 'Unknown'}
-            </Text>
-          </View>
+          {data.fit_status && data.fit_status !== 'unknown' && (
+            <View style={styles.resultItem}>
+              <Text style={styles.resultItemLabel}>Fit Status:</Text>
+              <Text style={[styles.resultItemValue, 
+                data.fit_status === 'fits' ? styles.fitsText : 
+                data.fit_status === 'does_not_fit' ? styles.noFitText : 
+                styles.partialFitText]}>
+                {data.fit_status}
+              </Text>
+            </View>
+          )}
           
+          {data.fit_message && (
+            <View style={styles.messageContainer}>
+              <Text style={styles.messageText}>{data.fit_message}</Text>
+            </View>
+          )}
+                    
+          {data.bin_volume_ml && (
+            <View style={styles.resultItem}>
+              <Text style={styles.resultItemLabel}>Bin Volume:</Text>
+              <Text style={styles.resultItemValue}>
+                {data.bin_volume_ml} ml ({data.bin_volume_liters} L)
+              </Text>
+            </View>
+          )}
+                    
           <View style={styles.resultItem}>
             <Text style={styles.resultItemLabel}>Confidence:</Text>
             <Text style={styles.resultItemValue}>
@@ -68,15 +143,15 @@ export default function Result({ navigation, route }: Props) {
             </Text>
           </View>
           
-          {data.tips && data.tips.length > 0 && (
-            <View style={styles.tipsContainer}>
-              <Text style={styles.tipsLabel}>Disposal Tips:</Text>
-              {data.tips.map((tip: string, index: number) => (
-                <Text key={index} style={styles.tipText}>• {tip}</Text>
-              ))}
-            </View>
-          )}
         </View>
+
+        {/* Recommend Disposal Button */}
+        <TouchableOpacity
+          style={styles.recommendButton}
+          onPress={handleGetTips}
+        >
+          <Text style={styles.recommendButtonText}>💡 Recommend me disposal method</Text>
+        </TouchableOpacity>
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity
@@ -85,15 +160,17 @@ export default function Result({ navigation, route }: Props) {
           >
             <Text style={styles.secondaryButtonText}>Go Back</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleNewEntry}
-          >
-            <Text style={styles.buttonText}>New Entry</Text>
-          </TouchableOpacity>
         </View>
       </View>
+
+      {/* Tips Modal */}
+      <TipsModal
+        visible={showTipsModal}
+        onClose={() => setShowTipsModal(false)}
+        tips={tipsData}
+        userId={userId}
+        isLoading={loadingTips}
+      />
     </ScrollView>
   );
 }
@@ -161,23 +238,38 @@ const styles = StyleSheet.create({
   partialFitText: {
     color: '#FF9800',
   },
-  tipsContainer: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  tipsLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+  messageContainer: {
+    marginTop: 12,
     marginBottom: 8,
+    padding: 12,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2E7D32',
   },
-  tipText: {
+  messageText: {
     fontSize: 14,
-    color: '#666',
+    color: '#333',
     lineHeight: 20,
-    marginBottom: 4,
+    fontStyle: 'italic',
+  },
+  recommendButton: {
+    backgroundColor: '#2E7D32',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 20,
+    shadowColor: '#2E7D32',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  recommendButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -206,5 +298,16 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  binImageContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
+    padding: 16,
+    backgroundColor: '#F9F9F9',
+    borderRadius: 12,
+  },
+  binImage: {
+    width: 200,
+    height: 200,
   },
 });

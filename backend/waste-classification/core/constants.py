@@ -9,18 +9,33 @@ class WasteType(str, Enum):
     ELECTRONIC = "electronic"
     HAZARDOUS = "hazardous"
     OTHER = "other"
+    BATTERIES = "batteries"
+    CLOTHES = "clothes"
+    E_WASTE = "e-waste"
+    LIGHT_BULBS = "light_bulbs"
+    UNKNOWN = "unknown"
+    PHARMACEUTICAL = "pharmaceutical"
+    RESIDUAL = "residual"
 
 class BinCategory(str, Enum):
-    RECYCLING = "recycling"
-    GENERAL = "general"
-    ORGANIC = "organic"
-    HAZARDOUS = "hazardous"
-    ELECTRONIC = "electronic"
+    RECYCLING = "blue_bin"
+    GENERAL = "yellow_bin"
+    ORGANIC = "green_bin"
+    HAZARDOUS = "black_bin"
+    ELECTRONIC = "red_bin"
+
+OVERFLOW_BIN_IDS = [b.value for b in BinCategory]
+
+
+def overflow_collection(bin_id: str) -> str:
+    """MongoDB collection name for a bin's volume/distance time series."""
+    return f"bin_volumes_{bin_id}"
 
 class FitStatus(str, Enum):
     FITS = "fits"
     DOES_NOT_FIT = "does_not_fit"
     PARTIAL_FIT = "partial_fit"
+    UNKNOWN = "unknown"
 
 # Waste type to bin mapping
 WASTE_TO_BIN_MAPPING = {
@@ -32,6 +47,13 @@ WASTE_TO_BIN_MAPPING = {
     WasteType.ELECTRONIC: BinCategory.ELECTRONIC,
     WasteType.HAZARDOUS: BinCategory.HAZARDOUS,
     WasteType.OTHER: BinCategory.GENERAL,
+    WasteType.BATTERIES: BinCategory.HAZARDOUS,
+    WasteType.CLOTHES: BinCategory.GENERAL,
+    WasteType.E_WASTE: BinCategory.ELECTRONIC,
+    WasteType.LIGHT_BULBS: BinCategory.HAZARDOUS,
+    WasteType.UNKNOWN: BinCategory.GENERAL,
+    WasteType.PHARMACEUTICAL: BinCategory.HAZARDOUS,
+    WasteType.RESIDUAL: BinCategory.GENERAL,
 }
 
 # Volume thresholds for fit status (in ml)

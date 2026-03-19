@@ -10,6 +10,11 @@ import WasteCheck from './app/screens/WasteCheck';
 import Result from './app/screens/Result';
 import Login from './app/screens/login';
 import Register from './app/screens/Register';
+import AIAgent from './app/screens/AIAgent';
+import Tax from './app/screens/Tax';
+import Tax_Household from './app/screens/Tax_Household';
+import PaymentScreen from './app/screens/Tax_Payment';
+import complaint from './app/screens/complaint';
 
 type RootStackParamList = {
   Logo: undefined;
@@ -18,7 +23,11 @@ type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   WasteCheck: undefined;
+  AIAgent: undefined;
+  Tax: { email: string };
+  Tax_Household: { email: string };
   Result: { data: any };
+  complaint: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -70,9 +79,36 @@ export default function App() {
           options={{ title: 'Check Waste Type' }}
         />
         <Stack.Screen 
+          name="AIAgent" 
+          component={AIAgent} 
+          options={{ title: 'AI Agent' }}
+        />
+        <Stack.Screen 
           name="Result" 
           component={Result} 
           options={{ title: 'Results' }}
+        />
+
+         <Stack.Screen
+          name="Tax"
+          component={Tax}
+          options={{ title: 'Check Tax' }}
+        />
+         <Stack.Screen
+          name="complaint"
+          component={complaint}
+          options={{ title: 'Complaint' }}
+        />
+        <Stack.Screen
+          name="Tax_Household"
+          component={Tax_Household}
+          options={{ title: 'Create Household' }}
+        />
+
+        <Stack.Screen
+          name="Payment"
+          component={PaymentScreen}
+          options={{ title: 'Payment' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
