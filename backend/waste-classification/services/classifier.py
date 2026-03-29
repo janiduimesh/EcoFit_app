@@ -310,8 +310,8 @@ class WasteClassifier:
 
     async def volume_from_distance(self, distance: float) -> float:
 
-        width = 74
-        length = 85
+        width = 50
+        length = 50
 
         return distance * width * length
 

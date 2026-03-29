@@ -1,8 +1,3 @@
-"""
-Bin Overflow Predictor Service
-
-Uses the trained time series model to predict future bin fill levels.
-"""
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -199,16 +194,6 @@ class BinOverflowPredictor:
         historical_data: List[Dict], 
         target_date: datetime
     ) -> Optional[float]:
-        """
-        Predict distance_cm for a target date.
-        
-        Args:
-            historical_data: List of historical bin distance records
-            target_date: Date to predict for
-            
-        Returns:
-            Predicted distance_cm, or None if prediction fails
-        """
         if not self.is_model_loaded():
             logger.warning("Model not loaded, cannot predict")
             return None
@@ -230,16 +215,10 @@ class BinOverflowPredictor:
     def recursive_forecast_distance(
         self,
         historical_data: List[Dict],
-        horizon_days: int = 60,
+        horizon_days: int = 30,
         start_date: Optional[datetime] = None
     ) -> List[Dict[str, Any]]:
-        """
-        Multi-step forecast: each day's prediction is fed back as the next day's input.
-        If start_date is provided, the first forecast day is start_date (or the day after
-        last historical date if start_date is before that). Otherwise forecasting starts
-        at last_date + 1. This keeps overflow_date aligned with the requested target_date.
-        Returns a list of {"date": datetime, "pred_distance_cm": float} for each day.
-        """
+        
         if not self.is_model_loaded():
             logger.warning("Model not loaded, cannot forecast")
             return []
@@ -339,16 +318,7 @@ class BinOverflowPredictor:
         historical_data: List[Dict],
         target_date: datetime,
     ) -> Dict[str, Any]:
-        """
-        Predict bin overflow for a target date (distance-based only).
         
-        Args:
-            historical_data: Historical bin distance data
-            target_date: Date to predict for
-            
-        Returns:
-            Dict with prediction details (distance only)
-        """
         predicted_distance = self.predict_distance(historical_data, target_date)
         
         if predicted_distance is None:
@@ -376,7 +346,7 @@ class BinOverflowPredictor:
 
         # Predict overflow date: first day when pred_distance_cm <= OVERFLOW_DISTANCE_CM
         future_pred = self.recursive_forecast_distance(
-            historical_data, horizon_days=60, start_date=target_date
+            historical_data, horizon_days=30, start_date=target_date
         )
         overflow_date = None
         for row in future_pred:
@@ -401,21 +371,7 @@ class BinOverflowPredictor:
         start_date: Optional[datetime] = None,
         use_recursive: bool = True
     ) -> List[Dict[str, Any]]:
-        """
-        Generate 7-day forecast (distance-based only).
-        
-        If use_recursive=True (default), uses recursive forecast: each day's prediction
-        is fed back as input for the next day.
-        If use_recursive=False, predicts each day independently (same history, different dow).
-        
-        Args:
-            historical_data: Historical bin distance data
-            start_date: Ignored when use_recursive=True; used as first target when False
-            use_recursive: If True, use recursive multi-step forecast
-            
-        Returns:
-            List of daily predictions: target_date, predicted_distance_cm, overflow_risk, message
-        """
+      
         if use_recursive:
             future = self.recursive_forecast_distance(
                 historical_data, horizon_days=7, start_date=start_date

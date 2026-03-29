@@ -1,7 +1,6 @@
 // Get API URL from environment variables or use default
 // Point to your FastAPI backend server
-
-export const API_URL = process.env.API_URL || 'http://192.168.8.106:8000/api/v1';
+export const API_URL = process.env.API_URL || 'http://192.168.43.164:8000/api/v1';
 
 //mobile Wifi
 // export const API_URL = process.env.API_URL || 'http://10.144.240.56:8000/api/v1';

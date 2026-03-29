@@ -144,7 +144,7 @@ const DashboardHeader = ({
               />
               <View style={styles.visualNumericContainer} pointerEvents="none">
                 <Text style={styles.premiumBigInt}>{inputs[activeTab]?.split('.')[0] || '0'}</Text>
-                {/* <Text style={styles.premiumSmallDec}>.{inputs[activeTab]?.split('.')[1] || '00'}</Text> */}
+                <Text style={styles.premiumSmallDec}>.{inputs[activeTab]?.split('.')[1] || '00'}</Text>
               </View>
             </View>
             <Text style={styles.premiumUnitTag}>KILOGRAMS (KG)</Text>
@@ -418,7 +418,7 @@ const WasteDashboard = ({ route, navigation }) => {
         </View>
 
         <View style={styles.historyCenter}>
-          <Text style={styles.historyWeight}>{parseFloat(item.weight_kg || 0).toFixed(2)} kg</Text>
+          <Text style={styles.historyWeight} numberOfLines={1}>{parseFloat(item.weight_kg || 0).toFixed(2)} kg</Text>
 
 
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
@@ -521,8 +521,11 @@ const styles = StyleSheet.create({
   },
   premiumInputSide: { flex: 1 },
   weightDisplayRow: { flexDirection: 'row', alignItems: 'baseline', position: 'relative' },
-  floatingHiddenInput: { position: 'absolute', width: '100%', height: '100%', zIndex: 10, color: 'transparent', fontSize: 40 },
-  visualNumericContainer: { flexDirection: 'row', alignItems: 'baseline' },
+  floatingHiddenInput: {
+    position: 'absolute', width: '100%', height: '100%', zIndex: 1, color: 'transparent', fontSize: 1,
+    textShadowColor: 'transparent', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 0,
+  },
+  visualNumericContainer: { flexDirection: 'row', alignItems: 'baseline', position: 'relative', zIndex: 2 },
   premiumBigInt: { fontSize: 48, fontWeight: '600', color: COLORS.primary, letterSpacing: -2 },
   premiumSmallDec: { fontSize: 24, fontWeight: '600', color: COLORS.accent, marginLeft: 2 },
   premiumUnitTag: { fontSize: 10, fontWeight: '800', color: COLORS.textLight, marginTop: -5 },
@@ -576,10 +579,10 @@ const styles = StyleSheet.create({
   sectionTotalAmt: { fontWeight: 'bold', color: COLORS.primary, fontSize: 14 },
 
   historyItem: { backgroundColor: '#fff', marginHorizontal: 20, padding: 15, borderRadius: 15, marginBottom: 8, elevation: 1, flexDirection: 'row', alignItems: 'center' },
-  historyDateBox: { alignItems: 'center', paddingRight: 15, borderRightWidth: 1, borderRightColor: '#eee', width: 50 },
+  historyDateBox: { alignItems: 'center', paddingRight: 15, borderRightWidth: 1, borderRightColor: '#eee', width: 50, flexShrink: 0 },
   historyWeek: { fontWeight: 'bold', color: COLORS.textDark },
   historyYear: { fontSize: 10, color: COLORS.textLight },
-  historyCenter: { flex: 1, paddingLeft: 15 },
+  historyCenter: { flex: 1, paddingLeft: 15, minWidth: 0 },
   historyWeight: { fontSize: 16, fontWeight: 'bold', color: COLORS.textDark },
   historyStatus: { fontSize: 10, fontWeight: 'bold', marginTop: 2 },
   financialDetailRow: { marginTop: 5 },
