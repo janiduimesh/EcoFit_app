@@ -3,6 +3,7 @@
 
 # Flutter
 mobile_flutter/
+mobile_admin/
 
 # Environment files
 .env

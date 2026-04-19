@@ -10,7 +10,6 @@ import * as MediaLibrary from 'expo-media-library';
 import Svg, { Path, Rect, Defs, ClipPath, G } from 'react-native-svg';
 
 const API_BASE = getApiUrl();
-const { width } = Dimensions.get('window');
 
 const COLORS = {
   primary: '#2D6A4F',
@@ -26,9 +25,13 @@ const COLORS = {
   cardBg: '#F8FBFA'
 };
 
+const TIER_RANGES = {
+  Low: { organic: "1.2 - 2.8", inorganic: "0.2 - 0.6", recyclable: "0.4 - 1.2" },
+  Medium: { organic: "2.5 - 4.5", inorganic: "0.5 - 1.0", recyclable: "0.8 - 1.8" },
+  High: { organic: "4.8 - 7.5", inorganic: "0.8 - 1.5", recyclable: "1.5 - 3.2" }
+};
 
 const DynamicBin = ({ value, color, label, maxWeight = 5 }) => {
-
   const fillPercent = Math.min(Math.max((value / maxWeight) * 100, 2), 95);
   const totalBodyHeight = 16;
   const fillHeight = (fillPercent / 100) * totalBodyHeight;
@@ -39,36 +42,17 @@ const DynamicBin = ({ value, color, label, maxWeight = 5 }) => {
     <View style={styles.binItem}>
       <Svg width="70" height="80" viewBox="0 0 24 24" fill="none">
         <Defs>
-
           <ClipPath id={`clip-${label}`}>
             <Path d={binPath} />
           </ClipPath>
         </Defs>
-
-
         <Path d={binPath} fill="#F1F5F9" opacity={0.5} />
-
-
         <G clipPath={`url(#clip-${label})`}>
-          <Rect
-            x="0"
-            y={22 - fillHeight}
-            width="24"
-            height={fillHeight}
-            fill={color}
-            opacity={0.8}
-          />
+          <Rect x="0" y={22 - fillHeight} width="24" height={fillHeight} fill={color} opacity={0.8} />
         </G>
-
-        <Path
-          d={binPath}
-          stroke={COLORS.textDark}
-          strokeWidth="1.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+        <Path d={binPath} stroke={COLORS.textDark} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
       </Svg>
-      <Text style={[styles.binValue, { color }]}>{value}<Text style={styles.unitText}> kg</Text></Text>
+      <Text style={[styles.binValue, { color }]}>{value.toFixed(1)}<Text style={styles.unitText}> kg</Text></Text>
       <Text style={styles.binLabel}>{label}</Text>
     </View>
   );
@@ -113,6 +97,9 @@ const HouseHoldProfile = ({ isVisible, onClose, householdId }) => {
     }
   };
 
+  const currentTier = data?.profile?.income_tier || 'Medium';
+  const ranges = TIER_RANGES[currentTier] || TIER_RANGES['Medium'];
+
   return (
     <Modal visible={isVisible} animationType="slide" transparent={true}>
       <View style={styles.overlay}>
@@ -149,11 +136,33 @@ const HouseHoldProfile = ({ isVisible, onClose, householdId }) => {
 
               {/* Dynamic Waste Fill Visualization */}
               <View style={styles.vizSection}>
-                <Text style={styles.sectionLabel}>Average Waste Volume</Text>
+                <Text style={styles.sectionLabel}>Your 12-Week Averages</Text>
                 <View style={styles.binRow}>
-                  <DynamicBin value={data.averages.Organic} color={COLORS.organic} label="Organic" maxWeight={5} />
-                  <DynamicBin value={data.averages.Recyclable} color={COLORS.recyclable} label="Recyclable" maxWeight={3} />
+                  <DynamicBin value={data.averages.Organic} color={COLORS.organic} label="Organic" maxWeight={8} />
+                  <DynamicBin value={data.averages.Recyclable} color={COLORS.recyclable} label="Recyclable" maxWeight={4} />
                   <DynamicBin value={data.averages.Inorganic} color={COLORS.inorganic} label="Inorganic" maxWeight={2} />
+                </View>
+              </View>
+
+              {/* Tier Benchmark Ranges */}
+              <View style={styles.rangeCard}>
+                <View style={styles.rangeHeader}>
+                    <Text style={styles.rangeTitle}>{currentTier} Waste Range</Text>
+                    <View style={styles.tierBadge}><Text style={styles.tierBadgeText}>Expected kg/week</Text></View>
+                </View>
+                <View style={styles.rangeRow}>
+                    <View style={styles.rangeItem}>
+                        <Text style={[styles.rangeLabel, {color: COLORS.organic}]}>Organic</Text>
+                        <Text style={styles.rangeValue}>{ranges.organic}</Text>
+                    </View>
+                    <View style={styles.rangeItem}>
+                        <Text style={[styles.rangeLabel, {color: COLORS.recyclable}]}>Recyclable</Text>
+                        <Text style={styles.rangeValue}>{ranges.recyclable}</Text>
+                    </View>
+                    <View style={styles.rangeItem}>
+                        <Text style={[styles.rangeLabel, {color: COLORS.inorganic}]}>Inorganic</Text>
+                        <Text style={styles.rangeValue}>{ranges.inorganic}</Text>
+                    </View>
                 </View>
               </View>
 
@@ -171,7 +180,7 @@ const HouseHoldProfile = ({ isVisible, onClose, householdId }) => {
               </View>
 
               <Text style={styles.footerNote}>
-                Statistics are generated from your historical 12-week disposal logs.
+                Ranges help you track if your disposal is within normal limits for your household size.
               </Text>
             </ScrollView>
           ) : null}
@@ -204,6 +213,17 @@ const styles = StyleSheet.create({
   binValue: { fontSize: 16, fontWeight: '900', marginTop: 5 },
   unitText: { fontSize: 10, fontWeight: '400' },
   binLabel: { fontSize: 10, fontWeight: '700', color: COLORS.textLight, marginTop: 2 },
+
+
+  rangeCard: { width: '100%', marginTop: 24, backgroundColor: COLORS.white, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: COLORS.border, borderLeftWidth: 5, borderLeftColor: COLORS.primary },
+  rangeHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  rangeTitle: { fontSize: 12, fontWeight: '900', color: COLORS.textDark, textTransform: 'uppercase' },
+  tierBadge: { backgroundColor: COLORS.background, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
+  tierBadgeText: { fontSize: 9, fontWeight: '700', color: COLORS.secondary },
+  rangeRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  rangeItem: { flex: 1, alignItems: 'center' },
+  rangeLabel: { fontSize: 9, fontWeight: '900', textTransform: 'uppercase' },
+  rangeValue: { fontSize: 13, fontWeight: '800', color: COLORS.textDark, marginTop: 2 },
 
   detailsCard: { width: '100%', marginTop: 20, backgroundColor: COLORS.cardBg, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: COLORS.border },
   detailItem: { paddingVertical: 8 },
