@@ -44,9 +44,10 @@ Answer: <your answer>
         ]
     )
 
-    # Extract document names from metadata
+    #Extract document names from metadata
+    top_chunks = used_chunks[:2]
     sources = list({
-        c["meta"]["source"] for c in used_chunks
+        c["meta"]["source"] for c in top_chunks
     })
 
     return {

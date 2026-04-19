@@ -14,7 +14,7 @@ def count_tokens(text, avg_chars_per_token=3.8):
     return len(text) / avg_chars_per_token
 
 
-def retrieve_chunks(query, top_k=20, rerank_top_k=10, final_k=5):
+def retrieve_chunks(query, top_k=20, rerank_top_k=10, final_k=4):
     q_emb = embedding_model.encode(
         [query], convert_to_numpy=True, normalize_embeddings=True
     )
@@ -45,10 +45,16 @@ def build_context(chunks, max_tokens=6500):
     used_chunks = []
     total_tokens = 0
 
-    for c in chunks:
-        tagged = f"{c['text']}\n"
-        tok = count_tokens(tagged)
+    # for c in chunks:
+    #     tagged = f"{c['text']}\n"
+    #     tok = count_tokens(tagged)
+    for i, c in enumerate(chunks, 1):
+        source = c["meta"]["source"]
 
+        tagged = f"[Source: {source}]\n{c['text']}\n"
+
+        tok = count_tokens(tagged)
+        
         if total_tokens + tok > max_tokens:
             continue
 
