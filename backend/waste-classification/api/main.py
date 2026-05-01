@@ -58,7 +58,6 @@ app.include_router(overflow.router, prefix="/api/v1/overflow", tags=["overflow"]
 app.include_router(collector.router, prefix="/api/v1", tags=["collector"])
 app.include_router(tax_routes.router, prefix="/api/v1", tags=["tax_routes"])
 app.include_router(complaints.router, prefix="/api/v1", tags=["complaints"])
-app.include_router(english_docs.router, prefix="/api/v1", tags=["English_documents"])
 
 @app.get("/")
 async def root():
