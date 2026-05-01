@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import dispose, health, distance, rag, User_routes, collector, tax_routes,overflow, complaints, english_docs
+from routers import dispose, health, distance, rag, User_routes, collector, tax_routes,overflow, complaints
 from core.database import connect_to_mongo, close_mongo_connection
 from jobs.schedular import setup_schedular
 from jobs.retraining_scheduler import setup_retraining_scheduler
